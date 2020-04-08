@@ -55,7 +55,7 @@ public abstract class SyntaxNodeTransformer<T> {
 
     // Statements
 
-    public T transform(LocalVariableDeclaration localVariableDeclaration) {
+    public T transform(VariableDeclaration localVariableDeclaration) {
         return transformSyntaxNode(localVariableDeclaration);
     }
 
@@ -71,6 +71,13 @@ public abstract class SyntaxNodeTransformer<T> {
         return transformSyntaxNode(panicStatement);
     }
 
+    public T transform(ContinueStatement continueStatement) {
+        return transformSyntaxNode(continueStatement);
+    }
+
+    public T transform(BreakStatement breakStatement) {
+        return transformSyntaxNode(breakStatement);
+    }
     public T transform(ReturnStatement returnStatement) {
         return transformSyntaxNode(returnStatement);
     }
@@ -81,7 +88,7 @@ public abstract class SyntaxNodeTransformer<T> {
         return transformSyntaxNode(binaryExpression);
     }
 
-    public T transform(FunctionCallNode functionCallNode) {
+    public T transform(FunctionCallExpressionNode functionCallNode) {
         return transformSyntaxNode(functionCallNode);
     }
 
@@ -138,10 +145,6 @@ public abstract class SyntaxNodeTransformer<T> {
         return transformSyntaxNode(recordRestDescriptorNode);
     }
 
-    public T transform(NodeList nodeList) {
-        return transformSyntaxNode(nodeList);
-    }
-
     public T transform(RecordTypeDescriptorNode recordTypeDescriptorNode) {
         return transformSyntaxNode(recordTypeDescriptorNode);
     }
@@ -188,6 +191,26 @@ public abstract class SyntaxNodeTransformer<T> {
 
     public T transform(SpreadField spreadField) {
         return transformSyntaxNode(spreadField);
+    }
+
+    public T transform(ServiceBody serviceBody) {
+        return transformSyntaxNode(serviceBody);
+    }
+
+    public T transform(ServiceDeclarationNode serviceDecl) {
+        return transformSyntaxNode(serviceDecl);
+    }
+
+    public T transform(ExpressionListItem expressionListItem) {
+        return transformSyntaxNode(expressionListItem);
+    }
+
+    public T transform(ListenerDeclaration listenerDecl) {
+        return transformSyntaxNode(listenerDecl);
+    }
+
+    public T transform(ConstantDeclaration constantDecl) {
+        return transformSyntaxNode(constantDecl);
     }
 
     /**

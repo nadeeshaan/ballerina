@@ -53,7 +53,7 @@ public abstract class SyntaxNodeVisitor {
 
     // Statements
 
-    public void visit(LocalVariableDeclaration localVariableDeclaration) {
+    public void visit(VariableDeclaration localVariableDeclaration) {
         visitSyntaxNode(localVariableDeclaration);
     }
 
@@ -69,6 +69,14 @@ public abstract class SyntaxNodeVisitor {
         visitSyntaxNode(panicStatement);
     }
 
+    public void visit(ContinueStatement continueStatement) {
+        visitSyntaxNode(continueStatement);
+    }
+
+    public void visit(BreakStatement breakStatement) {
+        visitSyntaxNode(breakStatement);
+    }
+
     public void visit(ReturnStatement returnStatement) {
         visitSyntaxNode(returnStatement);
     }
@@ -79,7 +87,7 @@ public abstract class SyntaxNodeVisitor {
         visitSyntaxNode(binaryExpression);
     }
 
-    public void visit(FunctionCallNode functionCallNode) {
+    public void visit(FunctionCallExpressionNode functionCallNode) {
         visitSyntaxNode(functionCallNode);
     }
 
@@ -132,9 +140,9 @@ public abstract class SyntaxNodeVisitor {
         visitSyntaxNode(recordRestDescriptorNode);
     }
 
-    public void visit(NodeList nodeList) {
-        visitSyntaxNode(nodeList);
-    }
+//    public void visit(NodeList nodeList) {
+//        visitSyntaxNode(nodeList);
+//    }
 
     public void visit(RecordTypeDescriptorNode recordTypeDescriptorNode) {
         visitSyntaxNode(recordTypeDescriptorNode);
@@ -184,6 +192,26 @@ public abstract class SyntaxNodeVisitor {
         visitSyntaxNode(spreadField);
     }
 
+    public void visit(ServiceBody serviceBody) {
+        visitSyntaxNode(serviceBody);
+    }
+
+    public void visit(ServiceDeclarationNode serviceDecl) {
+        visitSyntaxNode(serviceDecl);
+    }
+
+    public void visit(ExpressionListItem expressionListItem) {
+        visitSyntaxNode(expressionListItem);
+    }
+
+    public void visit(ListenerDeclaration listenerDecl) {
+        visitSyntaxNode(listenerDecl);
+    }
+
+    public void visit(ConstantDeclaration constantDecl) {
+        visitSyntaxNode(constantDecl);
+    }
+
     protected void visitSyntaxNode(Node node) {
         // TODO Find a better way to check for token
         if (node instanceof Token) {
@@ -192,9 +220,7 @@ public abstract class SyntaxNodeVisitor {
         }
 
         NonTerminalNode nonTerminalNode = (NonTerminalNode) node;
-        int bucketCount = nonTerminalNode.bucketCount();
-        for (int bucket = 0; bucket < bucketCount; bucket++) {
-            Node child = nonTerminalNode.childInBucket(bucket);
+        for (Node child : nonTerminalNode.children()) {
             child.accept(this);
         }
     }

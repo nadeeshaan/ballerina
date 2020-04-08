@@ -45,9 +45,16 @@ public class LexerTerminals {
     public static final String FALSE = "false";
     public static final String CHECK = "check";
     public static final String CHECKPANIC = "checkpanic";
+    public static final String CONTINUE = "continue";
+    public static final String BREAK = "break";
     public static final String IMPORT = "import";
     public static final String VERSION = "version";
     public static final String AS = "as";
+    public static final String ON = "on";
+    public static final String RESOURCE = "resource";
+    public static final String LISTENER = "listener";
+    public static final String CONST = "const";
+    public static final String FINAL = "final";
 
     // Types
     public static final String INT = "int";
@@ -62,7 +69,9 @@ public class LexerTerminals {
     public static final String ANYDATA = "anydata";
     public static final String SERVICE = "service";
     public static final String NIL = "()";
-
+    public static final String VAR = "var";
+    public static final String NEVER = "never";
+    
     // Separators
     public static final char SEMICOLON = ';';
     public static final char COLON = ':';
@@ -88,6 +97,9 @@ public class LexerTerminals {
     public static final char GT = '>';
     public static final char LT = '<';
     public static final char BACKSLASH = '\\';
+    public static final char EXCLAMATION_MARK = '!';
+    public static final char BITWISE_AND = '&';
+    public static final char BITWISE_XOR = '^';
 
     // Other
     public static final char NEWLINE = '\n'; // equivalent to 0xA
