@@ -20,7 +20,7 @@ package io.ballerinalang.compiler.internal.parser;
 import io.ballerinalang.compiler.internal.parser.tree.STNode;
 import io.ballerinalang.compiler.internal.parser.tree.STNodeFactory;
 import io.ballerinalang.compiler.internal.parser.tree.STToken;
-import io.ballerinalang.compiler.internal.parser.tree.SyntaxKind;
+import io.ballerinalang.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -179,6 +179,9 @@ public class BallerinaLexer {
                 break;
             case LexerTerminals.BITWISE_XOR:
                 token = getSyntaxToken(SyntaxKind.BITWISE_XOR_TOKEN);
+                break;
+            case LexerTerminals.NEGATION:
+                token = getSyntaxToken(SyntaxKind.NEGATION_TOKEN);
                 break;
 
             // Numbers
@@ -646,6 +649,8 @@ public class BallerinaLexer {
                 return getSyntaxToken(SyntaxKind.CONST_KEYWORD);
             case LexerTerminals.FINAL:
                 return getSyntaxToken(SyntaxKind.FINAL_KEYWORD);
+            case LexerTerminals.TYPEOF:
+                return getSyntaxToken(SyntaxKind.TYPEOF_KEYWORD);
             default:
                 return getIdentifierToken(tokenText);
         }
