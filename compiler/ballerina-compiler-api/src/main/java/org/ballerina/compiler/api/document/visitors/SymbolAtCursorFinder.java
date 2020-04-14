@@ -1,27 +1,49 @@
+/*
+ *  Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package org.ballerina.compiler.api.document.visitors;
 
 import org.ballerina.compiler.api.Position;
+import org.ballerina.compiler.api.impl.BallerinaSymbol;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.FunctionSymbol;
 import org.ballerinalang.util.diagnostic.Diagnostic;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
 import org.wso2.ballerinalang.compiler.tree.BLangCompilationUnit;
 import org.wso2.ballerinalang.compiler.tree.BLangFunction;
 import org.wso2.ballerinalang.compiler.tree.BLangNode;
 import org.wso2.ballerinalang.compiler.tree.BLangNodeVisitor;
-import org.wso2.ballerinalang.compiler.tree.BLangPackage;
 import org.wso2.ballerinalang.compiler.util.diagnotic.DiagnosticPos;
 
+/**
+ * Visitor to find the symbol at a given cursor position.
+ * 
+ * @since 1.3.0
+ */
 public class SymbolAtCursorFinder extends BLangNodeVisitor {
-
     private final Position position;
-    private BSymbol symbolAtCursor;
     private boolean terminate = false;
+    private BallerinaSymbol symbolAtCursor = null;
     
     public SymbolAtCursorFinder(Position position) {
         this.position = position;
     }
     
-    public BSymbol getSymbol(BLangPackage bLangPackage) {
-//        bLangPackage.compUnits.stream().filter(bLangCompilationUnit -> bLangCompilationUnit.)
+    public BCompiledSymbol getBallerinaSymbol(BLangCompilationUnit cUnit) {
+        this.visit(cUnit);
         return this.symbolAtCursor;
     }
 
@@ -35,10 +57,9 @@ public class SymbolAtCursorFinder extends BLangNodeVisitor {
         DiagnosticPos funcNamePos = funcNode.getName().getPosition();
         // Captures the function symbol if the given position is on the function name
         if (onIdentifier(funcNamePos)) {
-            this.symbolAtCursor = funcNode.symbol;
-            return;
+            this.symbolAtCursor = new FunctionSymbol(funcNode.getName().getValue(), null, funcNode.symbol,
+                    funcNode.symbol.pkgID);
         }
-        
     }
 
     private void acceptNode(BLangNode node) {
@@ -78,4 +99,11 @@ public class SymbolAtCursorFinder extends BLangNodeVisitor {
                 || (zeroBasedStartLine == zeroBasedEndLine && zeroBasedStartLine == line
                 && zeroBasedStartCol <= col && zeroBasedEndCol >= col);
     }
+    
+//    private BSemanticNode getSemanticModel(BLangNode node, BSymbol symbol) {
+//        return new BSemanticNodeImpl.SemanticNodeBuilder()
+//                .withNode(node)
+//                .withSymbol(symbol)
+//                .build();
+//    }
 }
