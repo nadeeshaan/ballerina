@@ -17,6 +17,7 @@
  */
 package org.ballerina.compiler.api.model;
 
+import org.ballerina.compiler.api.model.types.BTypeDescriptor;
 import org.ballerinalang.model.elements.PackageID;
 
 /**
@@ -27,7 +28,7 @@ import org.ballerinalang.model.elements.PackageID;
 public class ConstantSymbol extends VariableSymbol {
     // Todo: Represent the meta data
     // todo:final tags
-    public ConstantSymbol(String name, PackageID moduleID) {
-        super(name, moduleID);
+    public ConstantSymbol(String name, PackageID moduleID, BTypeDescriptor typeDescriptor) {
+        super(name, moduleID, typeDescriptor);
     }
 }

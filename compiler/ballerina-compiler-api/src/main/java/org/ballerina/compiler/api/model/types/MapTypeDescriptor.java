@@ -17,8 +17,6 @@
  */
 package org.ballerina.compiler.api.model.types;
 
-import org.ballerina.compiler.api.impl.BallerinaTypeDef;
-import org.ballerina.compiler.api.model.types.BTypeDescriptor;
 import org.ballerinalang.model.types.TypeKind;
 
 /**
@@ -30,7 +28,7 @@ public class MapTypeDescriptor extends BTypeDescriptor {
     
     private BTypeDescriptor memberTypeDesc; 
     
-    public MapTypeDescriptor(BallerinaTypeDef memberTypeDesc) {
+    public MapTypeDescriptor(BTypeDescriptor memberTypeDesc) {
         super(TypeKind.MAP);
         this.memberTypeDesc = memberTypeDesc;
     }

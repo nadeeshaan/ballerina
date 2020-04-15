@@ -57,7 +57,7 @@ public class SymbolAtCursorFinder extends BLangNodeVisitor {
         DiagnosticPos funcNamePos = funcNode.getName().getPosition();
         // Captures the function symbol if the given position is on the function name
         if (onIdentifier(funcNamePos)) {
-            this.symbolAtCursor = new FunctionSymbol(funcNode.getName().getValue(), null, funcNode.symbol,
+            this.symbolAtCursor = new FunctionSymbol(funcNode.getName().getValue(), funcNode.symbol,
                     funcNode.symbol.pkgID);
         }
     }

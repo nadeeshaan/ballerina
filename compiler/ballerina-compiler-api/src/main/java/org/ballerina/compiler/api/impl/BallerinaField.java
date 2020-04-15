@@ -17,7 +17,6 @@
  */
 package org.ballerina.compiler.api.impl;
 
-import com.sun.istack.internal.NotNull;
 import org.ballerina.compiler.api.model.BCompiledField;
 import org.ballerina.compiler.api.model.types.BTypeDescriptor;
 
@@ -30,7 +29,7 @@ public class BallerinaField implements BCompiledField {
     private String name;
     private BTypeDescriptor type;
 
-    public BallerinaField(@NotNull String name, @NotNull BTypeDescriptor type) {
+    public BallerinaField(String name,BTypeDescriptor type) {
         this.name = name;
         this.type = type;
     }

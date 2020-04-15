@@ -17,7 +17,6 @@
  */
 package org.ballerina.compiler.api.model.types;
 
-import com.sun.istack.internal.NotNull;
 import org.ballerina.compiler.api.model.ModuleID;
 import org.ballerinalang.model.types.TypeKind;
 
@@ -31,7 +30,7 @@ public class TypeReferenceTypeDesc extends BTypeDescriptor {
     private String identifier;
     private ModuleID moduleID;
 
-    public TypeReferenceTypeDesc(@NotNull String identifier, ModuleID moduleID) {
+    public TypeReferenceTypeDesc(String identifier, ModuleID moduleID) {
         super(TypeKind.OTHER);
         this.identifier = identifier;
         this.moduleID = moduleID;

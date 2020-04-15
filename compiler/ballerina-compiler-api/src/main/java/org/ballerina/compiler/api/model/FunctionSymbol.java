@@ -46,14 +46,17 @@ public class FunctionSymbol extends BallerinaSymbol {
         List<VariableSymbol> paramList = new ArrayList<>();
         for (BVarSymbol varSymbol : invokableSymbol.params) {
             PackageID varModuleID = varSymbol.pkgID;
-            VariableSymbol variableSymbol = new VariableSymbol(varSymbol.getName().getValue(), varModuleID);
+            BTypeDescriptor bTypeDesc = SymbolFactory.createTypeDescriptor(varSymbol.getType());
+            VariableSymbol variableSymbol = new VariableSymbol(varSymbol.getName().getValue(), varModuleID, bTypeDesc);
             paramList.add(variableSymbol);
         }
         return paramList;
     }
     
     public VariableSymbol getRestParam() {
-        return new VariableSymbol(invokableSymbol.getName().getValue(), invokableSymbol.pkgID);
+        String paramName = invokableSymbol.restParam.getName().getValue();
+        BTypeDescriptor bTypeDEsc= SymbolFactory.createTypeDescriptor(invokableSymbol.restParam.getType());
+        return new VariableSymbol(paramName, invokableSymbol.restParam.pkgID, bTypeDEsc);
     }
     
     public BTypeDescriptor getReturnType() {

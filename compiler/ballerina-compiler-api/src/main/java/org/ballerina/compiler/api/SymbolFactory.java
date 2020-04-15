@@ -73,7 +73,7 @@ public class SymbolFactory {
     public static VariableSymbol getVariableSymbol(BLangSimpleVarRef varRef) {
         String name = varRef.getVariableName().getValue();
         PackageID moduleID = varRef.symbol.pkgID;
-        return new VariableSymbol(name, moduleID);
+        return new VariableSymbol(name, moduleID, createTypeDescriptor(varRef.type));
     }
     
     public static BallerinaField createField(String name, BType fieldType) {

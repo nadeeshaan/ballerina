@@ -17,8 +17,6 @@
  */
 package org.ballerina.compiler.api.model.types;
 
-import com.sun.istack.internal.NotNull;
-import org.ballerina.compiler.api.model.types.BTypeDescriptor;
 import org.ballerinalang.model.types.TypeKind;
 
 import java.util.List;
@@ -33,8 +31,10 @@ public class TupleTypeDesc extends BTypeDescriptor {
     private List<BTypeDescriptor> memberTypes;
     private BTypeDescriptor restType;
 
-    public TupleTypeDesc(@NotNull List<BTypeDescriptor> memberTypeDescs, BTypeDescriptor restTypeDesc) {
+    public TupleTypeDesc(List<BTypeDescriptor> memberTypeDescs, BTypeDescriptor restTypeDesc) {
         super(TypeKind.TUPLE);
+        this.memberTypes = memberTypeDescs;
+        this.restType = restTypeDesc;
     }
 
     public List<BTypeDescriptor> getMemberTypes() {
