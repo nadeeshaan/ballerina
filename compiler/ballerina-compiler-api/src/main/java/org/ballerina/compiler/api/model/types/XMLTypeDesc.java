@@ -15,27 +15,32 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.ballerina.compiler.api.model;
+package org.ballerina.compiler.api.model.types;
 
-import org.ballerina.compiler.api.model.types.BTypeDescriptor;
-import org.ballerinalang.model.elements.PackageID;
+import org.ballerinalang.model.types.TypeKind;
 
 /**
- * Represents a module level variable symbol.
+ * Represent array type descriptor.
  * 
  * @since 1.3.0
  */
-public class ConstantSymbol extends VariableSymbol {
-    // Todo: Represent the meta data
-    // todo:final tags
-    private Object constantValue;
-    
-    public ConstantSymbol(String name, PackageID moduleID, BTypeDescriptor typeDescriptor, Object constantValue) {
-        super(name, moduleID, typeDescriptor);
-        this.constantValue = constantValue;
+public class XMLTypeDesc extends BTypeDescriptor {
+    private BTypeDescriptor typeParameter;
+
+    public XMLTypeDesc(BTypeDescriptor typeParameter) {
+        super(TypeKind.ARRAY);
+        this.typeParameter = typeParameter;
     }
 
-    public Object getConstantValue() {
-        return constantValue;
+    public BTypeDescriptor getTypeParameter() {
+        return this.typeParameter;
+    }
+
+    @Override
+    public String getSignature() {
+        if (this.typeParameter != null) {
+            return this.typeKind.typeName();
+        }
+        return this.typeKind.typeName() + "<" + this.typeParameter.getSignature() + ">";
     }
 }

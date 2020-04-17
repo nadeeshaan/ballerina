@@ -19,6 +19,7 @@ package org.ballerina.compiler.api.model;
 
 import org.ballerina.compiler.api.impl.BallerinaSymbol;
 import org.ballerina.compiler.api.model.types.BTypeDescriptor;
+import org.ballerina.compiler.api.model.types.TypeReferenceTypeDesc;
 import org.ballerinalang.model.elements.PackageID;
 
 /**
@@ -43,5 +44,14 @@ public class TypeDefinition extends BallerinaSymbol {
     
     public boolean isPublic() {
         return this.isPublic;
+    }
+
+    /**
+     * Generates a Type Reference for the type definition.
+     * 
+     * @return {@link TypeReferenceTypeDesc} for the type definition
+     */
+    public TypeReferenceTypeDesc getTypeReference() {
+        return new TypeReferenceTypeDesc(this.getName(), this.getModuleID());
     }
 }
