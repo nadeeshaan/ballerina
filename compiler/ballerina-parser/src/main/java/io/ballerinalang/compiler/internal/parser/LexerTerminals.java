@@ -19,7 +19,7 @@ package io.ballerinalang.compiler.internal.parser;
 
 /**
  * Contains lexer terminal nodes. Includes keywords, syntaxes, and operators.
- * 
+ *
  * @since 1.2.0
  */
 public class LexerTerminals {
@@ -65,7 +65,16 @@ public class LexerTerminals {
     public static final String PARAMETER = "parameter";
     public static final String FIELD = "field";
     public static final String XMLNS = "xmlns";
-    
+    public static final String FORK = "fork";
+    public static final String TRAP = "trap";
+    public static final String IN = "in";
+    public static final String FOREACH = "foreach";
+    public static final String TABLE = "table";
+    public static final String KEY = "key";
+    public static final String ERROR = "error";
+    public static final String LET = "let";
+    public static final String STREAM = "stream";
+
     // Types
     public static final String INT = "int";
     public static final String FLOAT = "float";
@@ -80,6 +89,9 @@ public class LexerTerminals {
     public static final String SERVICE = "service";
     public static final String VAR = "var";
     public static final String NEVER = "never";
+    public static final String MAP = "map";
+    public static final String FUTURE = "future";
+    public static final String TYPEDESC = "typedesc";
     public static final String BYTE = "byte";
 
     // Separators
@@ -96,8 +108,11 @@ public class LexerTerminals {
     public static final char PIPE = '|';
     public static final char QUESTION_MARK = '?';
     public static final char DOUBLE_QUOTE = '"';
+    public static final char SINGLE_QUOTE = '\'';
     public static final char HASH = '#';
     public static final char AT = '@';
+    public static final char BACKTICK = '`';
+    public static final char DOLLAR = '$';
 
     // Arithmetic operators
     public static final char EQUAL = '=';

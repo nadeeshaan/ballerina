@@ -48,20 +48,14 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
         Token visibilityQualifier = modifyToken(functionDefinitionNode.visibilityQualifier().orElse(null));
         Token functionKeyword = modifyToken(functionDefinitionNode.functionKeyword());
         IdentifierToken functionName = modifyNode(functionDefinitionNode.functionName());
-        Token openParenToken = modifyToken(functionDefinitionNode.openParenToken());
-        NodeList<ParameterNode> parameters = modifyNodeList(functionDefinitionNode.parameters());
-        Token closeParenToken = modifyToken(functionDefinitionNode.closeParenToken());
-        Node returnTypeDesc = modifyNode(functionDefinitionNode.returnTypeDesc().orElse(null));
+        FunctionSignatureNode functionSignature = modifyNode(functionDefinitionNode.functionSignature());
         Node functionBody = modifyNode(functionDefinitionNode.functionBody());
         return functionDefinitionNode.modify(
                 metadata,
                 visibilityQualifier,
                 functionKeyword,
                 functionName,
-                openParenToken,
-                parameters,
-                closeParenToken,
-                returnTypeDesc,
+                functionSignature,
                 functionBody);
     }
 
@@ -283,7 +277,7 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
     @Override
     public Node transform(ReturnStatementNode returnStatementNode) {
         Token returnKeyword = modifyToken(returnStatementNode.returnKeyword());
-        ExpressionNode expression = modifyNode(returnStatementNode.expression());
+        ExpressionNode expression = modifyNode(returnStatementNode.expression().orElse(null));
         Token semicolonToken = modifyToken(returnStatementNode.semicolonToken());
         return returnStatementNode.modify(
                 returnKeyword,
@@ -312,6 +306,36 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
         StatementNode blockStatement = modifyNode(lockStatementNode.blockStatement());
         return lockStatementNode.modify(
                 lockKeyword,
+                blockStatement);
+    }
+
+    @Override
+    public Node transform(ForkStatementNode forkStatementNode) {
+        Token forkKeyword = modifyToken(forkStatementNode.forkKeyword());
+        Token openBraceToken = modifyToken(forkStatementNode.openBraceToken());
+        NodeList<NamedWorkerDeclarationNode> namedWorkerDeclarations = modifyNodeList(forkStatementNode.namedWorkerDeclarations());
+        Token closeBraceToken = modifyToken(forkStatementNode.closeBraceToken());
+        return forkStatementNode.modify(
+                forkKeyword,
+                openBraceToken,
+                namedWorkerDeclarations,
+                closeBraceToken);
+    }
+
+    @Override
+    public Node transform(ForEachStatementNode forEachStatementNode) {
+        Token forEachKeyword = modifyToken(forEachStatementNode.forEachKeyword());
+        Node typeDescriptor = modifyNode(forEachStatementNode.typeDescriptor());
+        Token variableName = modifyToken(forEachStatementNode.variableName());
+        Token inKeyword = modifyToken(forEachStatementNode.inKeyword());
+        Node ActionOrExpressionNode = modifyNode(forEachStatementNode.ActionOrExpressionNode());
+        StatementNode blockStatement = modifyNode(forEachStatementNode.blockStatement());
+        return forEachStatementNode.modify(
+                forEachKeyword,
+                typeDescriptor,
+                variableName,
+                inKeyword,
+                ActionOrExpressionNode,
                 blockStatement);
     }
 
@@ -402,12 +426,12 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
     }
 
     @Override
-    public Node transform(MemberAccessExpressionNode memberAccessExpressionNode) {
-        ExpressionNode containerExpression = modifyNode(memberAccessExpressionNode.containerExpression());
-        Token openBracket = modifyToken(memberAccessExpressionNode.openBracket());
-        ExpressionNode keyExpression = modifyNode(memberAccessExpressionNode.keyExpression());
-        Token closeBracket = modifyToken(memberAccessExpressionNode.closeBracket());
-        return memberAccessExpressionNode.modify(
+    public Node transform(IndexedExpressionNode indexedExpressionNode) {
+        ExpressionNode containerExpression = modifyNode(indexedExpressionNode.containerExpression());
+        Token openBracket = modifyToken(indexedExpressionNode.openBracket());
+        ExpressionNode keyExpression = modifyNode(indexedExpressionNode.keyExpression());
+        Token closeBracket = modifyToken(indexedExpressionNode.closeBracket());
+        return indexedExpressionNode.modify(
                 containerExpression,
                 openBracket,
                 keyExpression,
@@ -813,19 +837,6 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
     }
 
     @Override
-    public Node transform(ArrayTypeDescriptorNode arrayTypeDescriptorNode) {
-        Node typeDescriptorNode = modifyNode(arrayTypeDescriptorNode.typeDescriptorNode());
-        Token openBracketToken = modifyToken(arrayTypeDescriptorNode.openBracketToken());
-        Node arrayLengthNode = modifyNode(arrayTypeDescriptorNode.arrayLengthNode());
-        Token closeBracketToken = modifyToken(arrayTypeDescriptorNode.closeBracketToken());
-        return arrayTypeDescriptorNode.modify(
-                typeDescriptorNode,
-                openBracketToken,
-                arrayLengthNode,
-                closeBracketToken);
-    }
-
-    @Override
     public Node transform(RemoteMethodCallActionNode remoteMethodCallActionNode) {
         ExpressionNode expression = modifyNode(remoteMethodCallActionNode.expression());
         Token rightArrowToken = modifyToken(remoteMethodCallActionNode.rightArrowToken());
@@ -840,6 +851,19 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
                 openParenToken,
                 arguments,
                 closeParenToken);
+    }
+
+    @Override
+    public Node transform(ParameterizedTypeDescriptorNode parameterizedTypeDescriptorNode) {
+        Token parameterizedType = modifyToken(parameterizedTypeDescriptorNode.parameterizedType());
+        Token ltToken = modifyToken(parameterizedTypeDescriptorNode.ltToken());
+        Node typeNode = modifyNode(parameterizedTypeDescriptorNode.typeNode());
+        Token gtToken = modifyToken(parameterizedTypeDescriptorNode.gtToken());
+        return parameterizedTypeDescriptorNode.modify(
+                parameterizedType,
+                ltToken,
+                typeNode,
+                gtToken);
     }
 
     @Override
@@ -976,6 +1000,342 @@ public abstract class TreeModifier extends NodeTransformer<Node> {
         return builtinSimpleNameReferenceNode.modify(
                 builtinSimpleNameReferenceNode.kind(),
                 name);
+    }
+
+    @Override
+    public Node transform(TrapExpressionNode trapExpressionNode) {
+        Token trapKeyword = modifyToken(trapExpressionNode.trapKeyword());
+        ExpressionNode expression = modifyNode(trapExpressionNode.expression());
+        return trapExpressionNode.modify(
+                trapKeyword,
+                expression);
+    }
+
+    @Override
+    public Node transform(ListConstructorExpressionNode listConstructorExpressionNode) {
+        Token openBracket = modifyToken(listConstructorExpressionNode.openBracket());
+        SeparatedNodeList<Node> expressions = modifySeparatedNodeList(listConstructorExpressionNode.expressions());
+        Token closeBracket = modifyToken(listConstructorExpressionNode.closeBracket());
+        return listConstructorExpressionNode.modify(
+                openBracket,
+                expressions,
+                closeBracket);
+    }
+
+    @Override
+    public Node transform(TypeCastExpressionNode typeCastExpressionNode) {
+        Token ltToken = modifyToken(typeCastExpressionNode.ltToken());
+        TypeCastParamNode typeCastParam = modifyNode(typeCastExpressionNode.typeCastParam());
+        Token gtToken = modifyToken(typeCastExpressionNode.gtToken());
+        ExpressionNode expression = modifyNode(typeCastExpressionNode.expression());
+        return typeCastExpressionNode.modify(
+                ltToken,
+                typeCastParam,
+                gtToken,
+                expression);
+    }
+
+    @Override
+    public Node transform(TypeCastParamNode typeCastParamNode) {
+        NodeList<AnnotationNode> annotations = modifyNodeList(typeCastParamNode.annotations());
+        Node type = modifyNode(typeCastParamNode.type());
+        return typeCastParamNode.modify(
+                annotations,
+                type);
+    }
+
+    @Override
+    public Node transform(UnionTypeDescriptorNode unionTypeDescriptorNode) {
+        Node leftTypeDesc = modifyNode(unionTypeDescriptorNode.leftTypeDesc());
+        Token pipeToken = modifyToken(unionTypeDescriptorNode.pipeToken());
+        Node rightTypeDesc = modifyNode(unionTypeDescriptorNode.rightTypeDesc());
+        return unionTypeDescriptorNode.modify(
+                leftTypeDesc,
+                pipeToken,
+                rightTypeDesc);
+    }
+
+    @Override
+    public Node transform(TableConstructorExpressionNode tableConstructorExpressionNode) {
+        Token tableKeyword = modifyToken(tableConstructorExpressionNode.tableKeyword());
+        KeySpecifierNode KeySpecifier = modifyNode(tableConstructorExpressionNode.KeySpecifier());
+        Token openBracket = modifyToken(tableConstructorExpressionNode.openBracket());
+        SeparatedNodeList<Node> mappingConstructors = modifySeparatedNodeList(tableConstructorExpressionNode.mappingConstructors());
+        Token closeBracket = modifyToken(tableConstructorExpressionNode.closeBracket());
+        return tableConstructorExpressionNode.modify(
+                tableKeyword,
+                KeySpecifier,
+                openBracket,
+                mappingConstructors,
+                closeBracket);
+    }
+
+    @Override
+    public Node transform(KeySpecifierNode keySpecifierNode) {
+        Token keyKeyword = modifyToken(keySpecifierNode.keyKeyword());
+        Token openParenToken = modifyToken(keySpecifierNode.openParenToken());
+        SeparatedNodeList<Node> fieldNames = modifySeparatedNodeList(keySpecifierNode.fieldNames());
+        Token closeParenToken = modifyToken(keySpecifierNode.closeParenToken());
+        return keySpecifierNode.modify(
+                keyKeyword,
+                openParenToken,
+                fieldNames,
+                closeParenToken);
+    }
+
+    @Override
+    public Node transform(ErrorTypeDescriptorNode errorTypeDescriptorNode) {
+        Token errorKeywordToken = modifyToken(errorTypeDescriptorNode.errorKeywordToken());
+        Node errorTypeParamsNode = modifyNode(errorTypeDescriptorNode.errorTypeParamsNode());
+        return errorTypeDescriptorNode.modify(
+                errorKeywordToken,
+                errorTypeParamsNode);
+    }
+
+    @Override
+    public Node transform(ErrorTypeParamsNode errorTypeParamsNode) {
+        Token ltToken = modifyToken(errorTypeParamsNode.ltToken());
+        Node parameter = modifyNode(errorTypeParamsNode.parameter());
+        Token gtToken = modifyToken(errorTypeParamsNode.gtToken());
+        return errorTypeParamsNode.modify(
+                ltToken,
+                parameter,
+                gtToken);
+    }
+
+    @Override
+    public Node transform(StreamTypeDescriptorNode streamTypeDescriptorNode) {
+        Token streamKeywordToken = modifyToken(streamTypeDescriptorNode.streamKeywordToken());
+        Node streamTypeParamsNode = modifyNode(streamTypeDescriptorNode.streamTypeParamsNode());
+        return streamTypeDescriptorNode.modify(
+                streamKeywordToken,
+                streamTypeParamsNode);
+    }
+
+    @Override
+    public Node transform(StreamTypeParamsNode streamTypeParamsNode) {
+        Token ltToken = modifyToken(streamTypeParamsNode.ltToken());
+        Node leftTypeDescNode = modifyNode(streamTypeParamsNode.leftTypeDescNode());
+        Token commaToken = modifyToken(streamTypeParamsNode.commaToken());
+        Node rightTypeDescNode = modifyNode(streamTypeParamsNode.rightTypeDescNode());
+        Token gtToken = modifyToken(streamTypeParamsNode.gtToken());
+        return streamTypeParamsNode.modify(
+                ltToken,
+                leftTypeDescNode,
+                commaToken,
+                rightTypeDescNode,
+                gtToken);
+    }
+
+    @Override
+    public Node transform(LetExpressionNode letExpressionNode) {
+        Token letKeyword = modifyToken(letExpressionNode.letKeyword());
+        SeparatedNodeList<Node> letVarDeclarations = modifySeparatedNodeList(letExpressionNode.letVarDeclarations());
+        Token inKeyword = modifyToken(letExpressionNode.inKeyword());
+        ExpressionNode expression = modifyNode(letExpressionNode.expression());
+        return letExpressionNode.modify(
+                letKeyword,
+                letVarDeclarations,
+                inKeyword,
+                expression);
+    }
+
+    @Override
+    public Node transform(LetVariableDeclarationNode letVariableDeclarationNode) {
+        NodeList<AnnotationNode> annotations = modifyNodeList(letVariableDeclarationNode.annotations());
+        Node typeName = modifyNode(letVariableDeclarationNode.typeName());
+        Token variableName = modifyToken(letVariableDeclarationNode.variableName());
+        Token equalsToken = modifyToken(letVariableDeclarationNode.equalsToken());
+        ExpressionNode expression = modifyNode(letVariableDeclarationNode.expression());
+        return letVariableDeclarationNode.modify(
+                annotations,
+                typeName,
+                variableName,
+                equalsToken,
+                expression);
+    }
+
+    @Override
+    public Node transform(TemplateExpressionNode templateExpressionNode) {
+        Token type = modifyToken(templateExpressionNode.type());
+        Token startBacktick = modifyToken(templateExpressionNode.startBacktick());
+        NodeList<TemplateMemberNode> content = modifyNodeList(templateExpressionNode.content());
+        Token endBacktick = modifyToken(templateExpressionNode.endBacktick());
+        return templateExpressionNode.modify(
+                templateExpressionNode.kind(),
+                type,
+                startBacktick,
+                content,
+                endBacktick);
+    }
+
+    @Override
+    public Node transform(XMLElementNode xMLElementNode) {
+        XMLStartTagNode startTag = modifyNode(xMLElementNode.startTag());
+        NodeList<XMLItemNode> content = modifyNodeList(xMLElementNode.content());
+        XMLEndTagNode endTag = modifyNode(xMLElementNode.endTag());
+        return xMLElementNode.modify(
+                startTag,
+                content,
+                endTag);
+    }
+
+    @Override
+    public Node transform(XMLStartTagNode xMLStartTagNode) {
+        Token ltToken = modifyToken(xMLStartTagNode.ltToken());
+        XMLNameNode name = modifyNode(xMLStartTagNode.name());
+        NodeList<XMLAttributeNode> attributes = modifyNodeList(xMLStartTagNode.attributes());
+        Token getToken = modifyToken(xMLStartTagNode.getToken());
+        return xMLStartTagNode.modify(
+                ltToken,
+                name,
+                attributes,
+                getToken);
+    }
+
+    @Override
+    public Node transform(XMLEndTagNode xMLEndTagNode) {
+        Token ltToken = modifyToken(xMLEndTagNode.ltToken());
+        Token slashToken = modifyToken(xMLEndTagNode.slashToken());
+        XMLNameNode name = modifyNode(xMLEndTagNode.name());
+        Token getToken = modifyToken(xMLEndTagNode.getToken());
+        return xMLEndTagNode.modify(
+                ltToken,
+                slashToken,
+                name,
+                getToken);
+    }
+
+    @Override
+    public Node transform(XMLSimpleNameNode xMLSimpleNameNode) {
+        XMLSimpleNameNode name = modifyNode(xMLSimpleNameNode.name());
+        return xMLSimpleNameNode.modify(
+                name);
+    }
+
+    @Override
+    public Node transform(XMLQualifiedNameNode xMLQualifiedNameNode) {
+        XMLSimpleNameNode prefix = modifyNode(xMLQualifiedNameNode.prefix());
+        Token colon = modifyToken(xMLQualifiedNameNode.colon());
+        XMLSimpleNameNode name = modifyNode(xMLQualifiedNameNode.name());
+        return xMLQualifiedNameNode.modify(
+                prefix,
+                colon,
+                name);
+    }
+
+    @Override
+    public Node transform(XMLEmptyElementNode xMLEmptyElementNode) {
+        Token ltToken = modifyToken(xMLEmptyElementNode.ltToken());
+        XMLNameNode name = modifyNode(xMLEmptyElementNode.name());
+        NodeList<XMLAttributeNode> attributes = modifyNodeList(xMLEmptyElementNode.attributes());
+        Token slashToken = modifyToken(xMLEmptyElementNode.slashToken());
+        Token getToken = modifyToken(xMLEmptyElementNode.getToken());
+        return xMLEmptyElementNode.modify(
+                ltToken,
+                name,
+                attributes,
+                slashToken,
+                getToken);
+    }
+
+    @Override
+    public Node transform(InterpolationNode interpolationNode) {
+        Token interpolationStartToken = modifyToken(interpolationNode.interpolationStartToken());
+        ExpressionNode expression = modifyNode(interpolationNode.expression());
+        Token interpolationEndToken = modifyToken(interpolationNode.interpolationEndToken());
+        return interpolationNode.modify(
+                interpolationStartToken,
+                expression,
+                interpolationEndToken);
+    }
+
+    @Override
+    public Node transform(XMLTextNode xMLTextNode) {
+        Token content = modifyToken(xMLTextNode.content());
+        return xMLTextNode.modify(
+                content);
+    }
+
+    @Override
+    public Node transform(XMLAttributeNode xMLAttributeNode) {
+        XMLNameNode attributeName = modifyNode(xMLAttributeNode.attributeName());
+        Token equalToken = modifyToken(xMLAttributeNode.equalToken());
+        XMLAttributeValue value = modifyNode(xMLAttributeNode.value());
+        return xMLAttributeNode.modify(
+                attributeName,
+                equalToken,
+                value);
+    }
+
+    @Override
+    public Node transform(XMLAttributeValue xMLAttributeValue) {
+        Token startQuote = modifyToken(xMLAttributeValue.startQuote());
+        NodeList<Node> value = modifyNodeList(xMLAttributeValue.value());
+        Token endQuote = modifyToken(xMLAttributeValue.endQuote());
+        return xMLAttributeValue.modify(
+                startQuote,
+                value,
+                endQuote);
+    }
+
+    @Override
+    public Node transform(XMLComment xMLComment) {
+        Token commentStart = modifyToken(xMLComment.commentStart());
+        NodeList<Node> content = modifyNodeList(xMLComment.content());
+        Token commentEnd = modifyToken(xMLComment.commentEnd());
+        return xMLComment.modify(
+                commentStart,
+                content,
+                commentEnd);
+    }
+
+    @Override
+    public Node transform(XMLProcessingInstruction xMLProcessingInstruction) {
+        Token piStart = modifyToken(xMLProcessingInstruction.piStart());
+        XMLNameNode target = modifyNode(xMLProcessingInstruction.target());
+        NodeList<Node> data = modifyNodeList(xMLProcessingInstruction.data());
+        Token piEnd = modifyToken(xMLProcessingInstruction.piEnd());
+        return xMLProcessingInstruction.modify(
+                piStart,
+                target,
+                data,
+                piEnd);
+    }
+
+    @Override
+    public Node transform(FunctionTypeDescriptorNode functionTypeDescriptorNode) {
+        Token functionKeyword = modifyToken(functionTypeDescriptorNode.functionKeyword());
+        FunctionSignatureNode functionSignature = modifyNode(functionTypeDescriptorNode.functionSignature());
+        return functionTypeDescriptorNode.modify(
+                functionKeyword,
+                functionSignature);
+    }
+
+    @Override
+    public Node transform(AnonymousFunctionExpressionNode anonymousFunctionExpressionNode) {
+        NodeList<AnnotationNode> annotations = modifyNodeList(anonymousFunctionExpressionNode.annotations());
+        Token functionKeyword = modifyToken(anonymousFunctionExpressionNode.functionKeyword());
+        FunctionSignatureNode functionSignature = modifyNode(anonymousFunctionExpressionNode.functionSignature());
+        Node functionBody = modifyNode(anonymousFunctionExpressionNode.functionBody());
+        return anonymousFunctionExpressionNode.modify(
+                annotations,
+                functionKeyword,
+                functionSignature,
+                functionBody);
+    }
+
+    @Override
+    public Node transform(FunctionSignatureNode functionSignatureNode) {
+        Token openParenToken = modifyToken(functionSignatureNode.openParenToken());
+        NodeList<ParameterNode> parameters = modifyNodeList(functionSignatureNode.parameters());
+        Token closeParenToken = modifyToken(functionSignatureNode.closeParenToken());
+        ReturnTypeDescriptorNode returnTypeDesc = modifyNode(functionSignatureNode.returnTypeDesc().orElse(null));
+        return functionSignatureNode.modify(
+                openParenToken,
+                parameters,
+                closeParenToken,
+                returnTypeDesc);
     }
 
     // Tokens
