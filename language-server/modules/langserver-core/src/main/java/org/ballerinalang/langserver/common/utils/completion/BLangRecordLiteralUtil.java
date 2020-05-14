@@ -182,7 +182,7 @@ public class BLangRecordLiteralUtil {
             }
             return Collections.singletonList(constraint);
         } else if (bType.getKind() == TypeDescKind.RECORD) {
-            return ((RecordTypeDescriptor) bType).getFieldDescriptors().values().stream()
+            return ((RecordTypeDescriptor) bType).getFieldDescriptors().stream()
                     .map(BallerinaField::getTypeDescriptor)
                     .collect(Collectors.toList());
         }
