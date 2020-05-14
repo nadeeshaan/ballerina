@@ -18,6 +18,7 @@
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.SnippetGenerator;
 import org.ballerinalang.langserver.common.CommonKeys;
@@ -28,7 +29,6 @@ import org.ballerinalang.langserver.completions.SnippetCompletionItem;
 import org.ballerinalang.langserver.completions.providers.AbstractCompletionProvider;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public class WorkerDeclarationContextProvider extends AbstractCompletionProvider
     @SuppressWarnings("unchecked")
     public List<LSCompletionItem> getCompletions(LSContext context) {
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         Boolean inWorkerReturnCtx = context.get(CompletionKeys.IN_WORKER_RETURN_CONTEXT_KEY);
         int invocationOrDelimiterTokenType = context.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
         if (invocationOrDelimiterTokenType == BallerinaParser.COLON) {

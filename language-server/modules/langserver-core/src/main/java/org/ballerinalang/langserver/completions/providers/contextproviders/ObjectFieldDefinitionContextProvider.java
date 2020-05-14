@@ -18,6 +18,7 @@
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -29,7 +30,6 @@ import org.ballerinalang.langserver.completions.providers.AbstractCompletionProv
 import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +48,7 @@ public class ObjectFieldDefinitionContextProvider extends AbstractCompletionProv
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
         List<CommonToken> lhsTokens = ctx.get(SourcePruneKeys.LHS_DEFAULT_TOKENS_KEY);
         List<Integer> lhsTokenTypes = ctx.get(SourcePruneKeys.LHS_DEFAULT_TOKEN_TYPES_KEY);
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         int invocationOrDelimiterTokenType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
 
         if (lhsTokenTypes.contains(BallerinaParser.ASSIGN)) {

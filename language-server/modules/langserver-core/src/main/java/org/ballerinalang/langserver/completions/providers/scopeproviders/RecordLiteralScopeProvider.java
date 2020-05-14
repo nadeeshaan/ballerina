@@ -19,6 +19,7 @@ package org.ballerinalang.langserver.completions.providers.scopeproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.utils.completion.BLangRecordLiteralUtil;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -30,7 +31,6 @@ import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 import org.wso2.ballerinalang.compiler.tree.BLangNode;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangRecordLiteral;
 
@@ -89,7 +89,7 @@ public class RecordLiteralScopeProvider extends AbstractCompletionProvider {
                     f1: a:b<cursor>
                  }
              */
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filteredItems =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filteredItems =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(ctx);
             return this.getCompletionItemList(filteredItems, ctx);
         }

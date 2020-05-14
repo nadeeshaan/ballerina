@@ -19,6 +19,8 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
@@ -31,9 +33,6 @@ import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BTypeSymbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +53,7 @@ public class IfWhileConditionContextProvider extends AbstractCompletionProvider 
     @Override
     public List<LSCompletionItem> getCompletions(LSContext context) {
         List<CommonToken> lhsTokens = context.get(SourcePruneKeys.LHS_TOKENS_KEY);
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
 
         if (lhsTokens == null) {
             return this.getExpressionCompletions(context, visibleSymbols);
@@ -65,6 +64,7 @@ public class IfWhileConditionContextProvider extends AbstractCompletionProvider 
         List<Integer> tokenTypes = lhsDefaultTokens.stream()
                 .map(CommonToken::getType)
                 .collect(Collectors.toList());
+        // TODO: Fix
         visibleSymbols.removeIf(CommonUtil.invalidSymbolsPredicate());
         boolean isTypeGuardCondition = this.isTypeGuardCondition(tokenTypes);
         int invocationOrDelimiterTokenType = context.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
@@ -74,15 +74,14 @@ public class IfWhileConditionContextProvider extends AbstractCompletionProvider 
                 String pkgName = lhsDefaultTokens.get(tokenTypes.indexOf(invocationOrDelimiterTokenType) - 1).getText();
                 return this.getTypeItemsInPackage(visibleSymbols, pkgName, context);
             }
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> items =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> items =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(context);
             return this.getCompletionItemList(items, context);
         }
         if (isTypeGuardCondition) {
             List<LSCompletionItem> typeItems = this.getPackagesCompletionItems(context);
-            List<Scope.ScopeEntry> userDefinedTypes = visibleSymbols.stream()
-                    .filter(scopeEntry -> scopeEntry.symbol instanceof BTypeSymbol
-                            && !(scopeEntry.symbol instanceof BPackageSymbol))
+            List<BCompiledSymbol> userDefinedTypes = visibleSymbols.stream()
+                    .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.TYPE_DEF)
                     .collect(Collectors.toList());
             typeItems.addAll(this.getCompletionItemList(userDefinedTypes, context));
             
@@ -96,7 +95,7 @@ public class IfWhileConditionContextProvider extends AbstractCompletionProvider 
         return tokenTypes.contains(BallerinaParser.IS);
     }
 
-    private List<LSCompletionItem> getExpressionCompletions(LSContext context, List<Scope.ScopeEntry> visibleSymbols) {
+    private List<LSCompletionItem> getExpressionCompletions(LSContext context, List<BCompiledSymbol> visibleSymbols) {
         List<LSCompletionItem> completionItems = this.getCompletionItemList(new ArrayList<>(visibleSymbols), context);
         completionItems.addAll(this.getPackagesCompletionItems(context));
 

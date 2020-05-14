@@ -17,12 +17,13 @@
  */
 package org.ballerinalang.langserver.completions.util;
 
+import org.ballerina.compiler.api.model.BallerinaField;
+import org.ballerina.compiler.api.types.RecordTypeDescriptor;
+import org.ballerina.compiler.api.types.TupleTypeDescriptor;
+import org.ballerina.compiler.api.types.TypeDescKind;
+import org.ballerina.compiler.api.types.TypeDescriptor;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BField;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BRecordType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BTupleType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BType;
 
 import java.util.List;
 import java.util.Map;
@@ -51,13 +52,13 @@ public class MatchStatementResolverUtil {
     /**
      * Get the Structured fixed value match.
      *
-     * @param bType             Structured type, either BRecordType or a BTupleType
+     * @param typeDesc Structured type descriptor, either record type descriptor  or a tuple type descriptor
      * @return {@link String}   Generate pattern clause
      */
-    public static String getStructuredFixedValueMatch(BType bType) {
+    public static String getStructuredFixedValueMatch(TypeDescriptor typeDesc) {
         StringBuilder fixedValPattern = new StringBuilder();
-        if (bType instanceof BTupleType) {
-            List<BType> tupleTypes = ((BTupleType) bType).getTupleTypes();
+        if (typeDesc.getKind() == TypeDescKind.TUPLE) {
+            List<TypeDescriptor> tupleTypes = ((TupleTypeDescriptor) typeDesc).getMemberTypes();
             List<String> defaultValues = tupleTypes.stream()
                     .map(MatchStatementResolverUtil::getStructuredFixedValueMatch)
                     .collect(Collectors.toList());
@@ -65,17 +66,17 @@ public class MatchStatementResolverUtil {
                     .append(CommonKeys.OPEN_BRACKET_KEY)
                     .append(String.join(", ", defaultValues))
                     .append(CommonKeys.CLOSE_BRACKET_KEY);
-        } else if (bType instanceof BRecordType) {
-            Map<String, BField> fields = ((BRecordType) bType).fields;
-            List<String> defaultValues = fields.values().stream()
-                    .map(field -> field.getName().getValue() + ":" + getStructuredFixedValueMatch(field.getType()))
+        } else if (typeDesc.getKind() == TypeDescKind.RECORD) {
+            List<BallerinaField> fields = ((RecordTypeDescriptor) typeDesc).getFieldDescriptors();
+            List<String> defaultValues = fields.stream()
+                    .map(field -> field.getName() + ":" + getStructuredFixedValueMatch(field.getTypeDescriptor()))
                     .collect(Collectors.toList());
             fixedValPattern
                     .append(CommonKeys.OPEN_BRACE_KEY)
                     .append(String.join(", ", defaultValues))
                     .append(CommonKeys.CLOSE_BRACE_KEY);
         } else {
-            fixedValPattern.append(CommonUtil.getDefaultValueForType(bType));
+            fixedValPattern.append(CommonUtil.getDefaultValueForType(typeDesc));
         }
 
         return fixedValPattern.toString();

@@ -17,6 +17,7 @@
  */
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
@@ -28,7 +29,6 @@ import org.ballerinalang.langserver.completions.util.filters.DelimiterBasedConte
 import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class ExpressionFunctionBodyContextProvider extends AbstractCompletionPro
         Integer invocationType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
 
         if (invocationType > -1) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filterItems
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filterItems
                     = SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(ctx);
             return this.getCompletionItemList(filterItems, ctx);
         }

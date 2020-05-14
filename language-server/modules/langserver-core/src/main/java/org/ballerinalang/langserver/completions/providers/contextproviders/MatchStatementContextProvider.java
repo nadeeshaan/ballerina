@@ -19,6 +19,12 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaFunctionSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
+import org.ballerina.compiler.api.model.BallerinaVariable;
+import org.ballerina.compiler.api.types.TypeDescKind;
+import org.ballerina.compiler.api.types.TypeDescriptor;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
@@ -38,15 +44,6 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BVarSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BRecordType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BTupleType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BType;
-import org.wso2.ballerinalang.util.Flags;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,67 +71,71 @@ public class MatchStatementContextProvider extends AbstractCompletionProvider {
                 .filter(commonToken -> commonToken.getChannel() == Token.DEFAULT_CHANNEL)
                 .collect(Collectors.toList());
         List<Integer> defaultTokenTypes = defaultTokens.stream().map(CommonToken::getType).collect(Collectors.toList());
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         int delimiter = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
         if (delimiter == BallerinaParser.COLON) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> moduleContent =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> moduleContent =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(ctx);
             return this.getCompletionItemList(moduleContent, ctx);
         } else if (delimiter > -1) {
             String varName = defaultTokens.get(defaultTokenTypes.indexOf(delimiter) - 1).getText();
-            List<Scope.ScopeEntry> filteredList = FilterUtils.filterVariableEntriesOnDelimiter(ctx, varName, delimiter
-                    , defaultTokens, defaultTokenTypes.lastIndexOf(delimiter));
+            List<? extends BCompiledSymbol> filteredList = FilterUtils.filterVariableEntriesOnDelimiter(ctx, varName,
+                    delimiter, defaultTokens, defaultTokenTypes.lastIndexOf(delimiter));
             filteredList.removeIf(CommonUtil.invalidSymbolsPredicate());
-            filteredList.forEach(scopeEntry -> {
-                if (CommonUtil.isValidInvokableSymbol(scopeEntry.symbol)) {
-                    BSymbol scopeEntrySymbol = scopeEntry.symbol;
-                    completionItems.add(this.fillInvokableSymbolMatchSnippet((BInvokableSymbol) scopeEntrySymbol, ctx));
+            filteredList.forEach(symbol -> {
+                if (symbol.getKind() == BallerinaSymbolKind.FUNCTION) {
+//                    BSymbol scopeEntrySymbol = scopeEntry.symbol;
+                    completionItems.add(this.fillInvokableSymbolMatchSnippet((BallerinaFunctionSymbol) symbol, ctx));
                 }
             });
         } else {
             visibleSymbols.removeIf(CommonUtil.invalidSymbolsPredicate());
-            visibleSymbols.forEach(scopeEntry -> {
-                BSymbol bSymbol = scopeEntry.symbol;
-                if (CommonUtil.isValidInvokableSymbol(scopeEntry.symbol)
-                        && ((bSymbol.flags & Flags.ATTACHED) != Flags.ATTACHED)) {
-                    completionItems.add(this.fillInvokableSymbolMatchSnippet((BInvokableSymbol) bSymbol, ctx));
-                } else if (!(scopeEntry.symbol instanceof BInvokableSymbol)
-                        && bSymbol instanceof BVarSymbol) {
-                    fillVarSymbolMatchSnippet(ctx, (BVarSymbol) bSymbol, completionItems);
-                    String typeName = scopeEntry.symbol.type.toString();
-                    CompletionItem cItem = BVariableCompletionItemBuilder.build((BVarSymbol) bSymbol,
-                            scopeEntry.symbol.name.value, typeName);
-                    completionItems.add(new SymbolCompletionItem(ctx, scopeEntry.symbol, cItem));
-                } else if (bSymbol instanceof BPackageSymbol) {
-                    CompletionItem cItem = BTypeCompletionItemBuilder.build(bSymbol, scopeEntry.symbol.name.getValue());
-                    completionItems.add(new SymbolCompletionItem(ctx, scopeEntry.symbol, cItem));
+            visibleSymbols.forEach(symbol -> {
+                if (symbol.getKind() == BallerinaSymbolKind.FUNCTION) {
+                    completionItems.add(this.fillInvokableSymbolMatchSnippet((BallerinaFunctionSymbol) symbol, ctx));
+                } else if (symbol instanceof BallerinaVariable
+                        && symbol.getKind() != BallerinaSymbolKind.TYPE_DEF
+                        && symbol.getKind() != BallerinaSymbolKind.ANNOTATION
+                        && ((BallerinaVariable) symbol).getTypeDescriptor().isPresent()) {
+                    fillVarSymbolMatchSnippet(ctx, (BallerinaVariable) symbol, completionItems);
+                    String typeName = ((BallerinaVariable) symbol).getTypeDescriptor().get().getSignature();
+                    CompletionItem cItem = BVariableCompletionItemBuilder.build((BallerinaVariable) symbol,
+                            symbol.getName(), typeName);
+                    completionItems.add(new SymbolCompletionItem(ctx, symbol, cItem));
+                } else if (symbol.getKind() == BallerinaSymbolKind.MODULE) {
+                    CompletionItem cItem = BTypeCompletionItemBuilder.build(symbol, symbol.getName());
+                    completionItems.add(new SymbolCompletionItem(ctx, symbol, cItem));
                 }
             });
         }
         return completionItems;
     }
 
-    private LSCompletionItem getVariableCompletionItem(LSContext context, BVarSymbol varSymbol,
+    private LSCompletionItem getVariableCompletionItem(LSContext context, BallerinaVariable varSymbol,
                                                        String matchFieldSnippet, String label) {
-        CompletionItem completionItem =
-                BVariableCompletionItemBuilder.build(varSymbol, label, varSymbol.type.toString());
-        completionItem.setInsertText(varSymbol.getName().getValue() + " " + matchFieldSnippet);
+        CompletionItem completionItem = BVariableCompletionItemBuilder.build(varSymbol, label,
+                varSymbol.getTypeDescriptor().get().getSignature());
+        completionItem.setInsertText(varSymbol.getName() + " " + matchFieldSnippet);
         completionItem.setInsertTextFormat(InsertTextFormat.Snippet);
         return new SymbolCompletionItem(context, varSymbol, completionItem);
     }
 
-    private String getFunctionSignature(BInvokableSymbol func) {
-        String[] nameComps = func.getName().getValue().split("\\.");
+    private String getFunctionSignature(BallerinaFunctionSymbol func) {
+        String[] nameComps = func.getName().split("\\.");
         StringBuilder signature = new StringBuilder(nameComps[nameComps.length - 1]);
         List<String> params = new ArrayList<>();
         signature.append(CommonKeys.OPEN_PARENTHESES_KEY);
-        func.getParameters().forEach(bVarSymbol -> params.add(bVarSymbol.getName().getValue()));
+        func.getParams().forEach(param -> {
+            if (param.getName().isPresent()) {
+                params.add(param.getName().get());
+            }
+        });
         signature.append(String.join(",", params)).append(")");
 
         return signature.toString();
     }
 
-    private LSCompletionItem fillInvokableSymbolMatchSnippet(BInvokableSymbol func, LSContext ctx) {
+    private LSCompletionItem fillInvokableSymbolMatchSnippet(BallerinaFunctionSymbol func, LSContext ctx) {
         String functionSignature = getFunctionSignature(func);
         String variableValuePattern = getVariableValueDestructurePattern();
         String variableValueSnippet = this.generateMatchSnippet(variableValuePattern);
@@ -145,12 +146,16 @@ public class MatchStatementContextProvider extends AbstractCompletionProvider {
         return new SymbolCompletionItem(ctx, func, completionItem);
     }
 
-    private void fillVarSymbolMatchSnippet(LSContext context, BVarSymbol varSymbol,
+    private void fillVarSymbolMatchSnippet(LSContext context, BallerinaVariable varSymbol,
                                            List<LSCompletionItem> completionItems) {
-        BType symbolType = varSymbol.getType();
-        String varName = varSymbol.getName().getValue();
-        if (symbolType instanceof BTupleType || symbolType instanceof BRecordType) {
-            String fixedValuePattern = "\t" + generateMatchPattern(getStructuredFixedValueMatch(symbolType));
+        String varName = varSymbol.getName();
+        if (!varSymbol.getTypeDescriptor().isPresent()) {
+            return;
+        }
+        TypeDescriptor typeDesc = CommonUtil.getRawType(varSymbol.getTypeDescriptor().get());
+        if (typeDesc.getKind() == TypeDescKind.TUPLE || typeDesc.getKind() == TypeDescKind.RECORD) {
+            String fixedValuePattern = "\t" +
+                    generateMatchPattern(getStructuredFixedValueMatch(typeDesc));
             String fixedValueSnippet = this.generateMatchSnippet(fixedValuePattern);
             completionItems.add(this.getVariableCompletionItem(context, varSymbol, fixedValueSnippet, varName));
         } else {

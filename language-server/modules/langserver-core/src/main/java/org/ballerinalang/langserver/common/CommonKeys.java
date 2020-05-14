@@ -17,6 +17,8 @@
 */
 package org.ballerinalang.langserver.common;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.semantic.SemanticModel;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
@@ -61,5 +63,9 @@ public class CommonKeys {
     
     public static final String SLASH_KEYWORD_KEY = "/";
     
-    public static final LSContext.Key<List<Scope.ScopeEntry>> VISIBLE_SYMBOLS_KEY = new LSContext.Key<>();
+    public static final LSContext.Key<List<BCompiledSymbol>> VISIBLE_SYMBOLS_KEY = new LSContext.Key<>();
+    
+    public static final LSContext.Key<List<Scope.ScopeEntry>> VISIBLE_SYMBOLS_KEY2 = new LSContext.Key<>();
+    
+    public static final LSContext.Key<SemanticModel> SEMANTIC_MODEL_KEY = new LSContext.Key<>();
 }

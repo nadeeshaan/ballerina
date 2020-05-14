@@ -17,6 +17,7 @@
  */
 package org.ballerinalang.langserver.completions.util.filters;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
@@ -42,7 +43,7 @@ import java.util.List;
  */
 public class StatementTemplateFilter extends AbstractSymbolFilter {
     @Override
-    public Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filterItems(LSContext context) {
+    public Either<List<LSCompletionItem>, List<BCompiledSymbol>> filterItems(LSContext context) {
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
         BLangNode bLangNode = context.get(CompletionKeys.SCOPE_NODE_KEY);
 

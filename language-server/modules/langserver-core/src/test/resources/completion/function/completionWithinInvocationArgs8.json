@@ -22,7 +22,7 @@
     {
       "label": "testO",
       "kind": "Variable",
-      "detail": "TestObject",
+      "detail": "testO",
       "sortText": "130",
       "insertText": "testO",
       "insertTextFormat": "Snippet"
@@ -30,7 +30,7 @@
     {
       "label": "args",
       "kind": "Variable",
-      "detail": "string[]",
+      "detail": "args",
       "sortText": "130",
       "insertText": "args",
       "insertTextFormat": "Snippet"

@@ -19,11 +19,15 @@ package org.ballerinalang.langserver.completions.providers.scopeproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaModule;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
+import org.ballerina.compiler.api.model.BallerinaTypeDefinition;
+import org.ballerina.compiler.api.types.ObjectTypeDescriptor;
+import org.ballerina.compiler.api.types.TypeDescKind;
 import org.ballerinalang.annotation.JavaSPIService;
-import org.ballerinalang.jvm.util.Flags;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
-import org.ballerinalang.langserver.common.utils.FilterUtils;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionException;
@@ -36,9 +40,6 @@ import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.ballerinalang.model.tree.NodeKind;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BObjectTypeSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
 import org.wso2.ballerinalang.compiler.tree.BLangNode;
 import org.wso2.ballerinalang.compiler.tree.types.BLangObjectTypeNode;
 
@@ -107,9 +108,9 @@ public class ObjectTypeNodeScopeProvider extends AbstractCompletionProvider {
     }
 
     private void fillTypes(LSContext context, List<LSCompletionItem> completionItems) {
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        List<Scope.ScopeEntry> filteredTypes = visibleSymbols.stream()
-                .filter(FilterUtils::isBTypeEntry)
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> filteredTypes = visibleSymbols.stream()
+                .filter(compiledSymbol -> compiledSymbol instanceof BallerinaTypeDefinition)
                 .collect(Collectors.toList());
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredTypes), context));
         completionItems.addAll(this.getPackagesCompletionItems(context));
@@ -120,20 +121,16 @@ public class ObjectTypeNodeScopeProvider extends AbstractCompletionProvider {
         CommonToken lastItem = CommonUtil.getLastItem(lhsDefaultTokens);
         if (lastItem != null && lastItem.getType() == BallerinaParser.COLON) {
             String pkgName = lhsDefaultTokens.get(1).getText();
-            List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-            Optional<Scope.ScopeEntry> pkgSymbolInfo = visibleSymbols.stream()
-                    .filter(scopeEntry -> scopeEntry.symbol instanceof BPackageSymbol
-                            && scopeEntry.symbol.pkgID.getName().getValue().equals(pkgName))
+            List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+            Optional<BCompiledSymbol> pkgSymbolInfo = visibleSymbols.stream()
+                    .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.MODULE
+                            && symbol.getModuleID().getModulePrefix().equals(pkgName))
                     .findAny();
 
             if (pkgSymbolInfo.isPresent()) {
-                List<Scope.ScopeEntry> filteredSymbolInfo = pkgSymbolInfo.get().symbol.scope.entries.values().stream()
-                        .filter(scopeEntry -> scopeEntry.symbol instanceof BObjectTypeSymbol
-                                && (scopeEntry.symbol.flags & Flags.ABSTRACT) == Flags.ABSTRACT)
-                        .map(scopeEntry -> {
-                            BObjectTypeSymbol oSymbol = (BObjectTypeSymbol) scopeEntry.symbol;
-                            return new Scope.ScopeEntry(oSymbol, null);
-                        })
+                List<BCompiledSymbol> filteredSymbolInfo = ((BallerinaModule) pkgSymbolInfo.get()).getAllSymbols()
+                        .stream()
+                        .filter(this::isAbstractObject)
                         .collect(Collectors.toList());
                 completionItems.addAll(this.getCompletionItemList(filteredSymbolInfo, ctx));
             }
@@ -142,11 +139,18 @@ public class ObjectTypeNodeScopeProvider extends AbstractCompletionProvider {
         }
     }
 
+    private boolean isAbstractObject(BCompiledSymbol symbol) {
+        return symbol.getKind() == BallerinaSymbolKind.TYPE_DEF
+                && ((BallerinaTypeDefinition) symbol).getTypeDescriptor().isPresent()
+                && ((BallerinaTypeDefinition) symbol).getTypeDescriptor().get().getKind() == TypeDescKind.OBJECT
+                && ((ObjectTypeDescriptor) ((BallerinaTypeDefinition) symbol).getTypeDescriptor().get())
+                .getTypeQualifiers().contains(ObjectTypeDescriptor.TypeQualifier.ABSTRACT);
+    }
+
     private void fillVisibleObjectsAndPackages(List<LSCompletionItem> completionItems, LSContext ctx) {
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        List<Scope.ScopeEntry> filteredList = visibleSymbols.stream()
-                .filter(scopeEntry -> scopeEntry.symbol instanceof BObjectTypeSymbol
-                        && (scopeEntry.symbol.flags & Flags.ABSTRACT) == Flags.ABSTRACT)
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> filteredList = visibleSymbols.stream()
+                .filter(this::isAbstractObject)
                 .collect(Collectors.toList());
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredList), ctx));
         completionItems.addAll(this.getPackagesCompletionItems(ctx));

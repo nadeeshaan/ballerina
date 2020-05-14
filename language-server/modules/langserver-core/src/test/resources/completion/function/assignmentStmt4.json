@@ -6,6 +6,96 @@
   "source": "function/source/assignmentStmt4.bal",
   "items": [
     {
+      "label": "deprecated",
+      "kind": "Variable",
+      "detail": "deprecated",
+      "sortText": "130",
+      "insertText": "deprecated",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "untainted",
+      "kind": "Variable",
+      "detail": "untainted",
+      "sortText": "130",
+      "insertText": "untainted",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "DefaultableArgs",
+      "kind": "Variable",
+      "detail": "DefaultableArgs",
+      "sortText": "130",
+      "insertText": "DefaultableArgs",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "strand",
+      "kind": "Variable",
+      "detail": "strand",
+      "sortText": "130",
+      "insertText": "strand",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "tainted",
+      "kind": "Variable",
+      "detail": "tainted",
+      "sortText": "130",
+      "insertText": "tainted",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "testObject",
+      "kind": "Variable",
+      "detail": "testObject",
+      "sortText": "130",
+      "insertText": "testObject",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "testFunction(string args)",
+      "kind": "Function",
+      "detail": "Function",
+      "documentation": {
+        "right": {
+          "kind": "markdown",
+          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `string` args  \n  \n**Returns** `()`   \n  \n"
+        }
+      },
+      "sortText": "120",
+      "insertText": "testFunction(${1});",
+      "insertTextFormat": "Snippet",
+      "command": {
+        "title": "editor.action.triggerParameterHints",
+        "command": "editor.action.triggerParameterHints"
+      }
+    },
+    {
+      "label": "typeParam",
+      "kind": "Variable",
+      "detail": "typeParam",
+      "sortText": "130",
+      "insertText": "typeParam",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "args",
+      "kind": "Variable",
+      "detail": "args",
+      "sortText": "130",
+      "insertText": "args",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "builtinSubtype",
+      "kind": "Variable",
+      "detail": "builtinSubtype",
+      "sortText": "130",
+      "insertText": "builtinSubtype",
+      "insertTextFormat": "Snippet"
+    },
+    {
       "label": "http",
       "kind": "Module",
       "detail": "Module",
@@ -1095,22 +1185,28 @@
       ]
     },
     {
-      "label": "TestObject(int field1, int field2)",
-      "kind": "Function",
-      "detail": "Function",
-      "documentation": {
-        "right": {
-          "kind": "markdown",
-          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `int` field1  \n- `int` field2"
-        }
-      },
-      "sortText": "120",
-      "insertText": "TestObject(${1});",
-      "insertTextFormat": "Snippet",
-      "command": {
-        "title": "editor.action.triggerParameterHints",
-        "command": "editor.action.triggerParameterHints"
-      }
+      "label": "wait",
+      "kind": "Keyword",
+      "detail": "Keyword",
+      "sortText": "220",
+      "insertText": "wait ",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "start",
+      "kind": "Keyword",
+      "detail": "Keyword",
+      "sortText": "220",
+      "insertText": "start ",
+      "insertTextFormat": "Snippet"
+    },
+    {
+      "label": "flush",
+      "kind": "Keyword",
+      "detail": "Keyword",
+      "sortText": "220",
+      "insertText": "flush ",
+      "insertTextFormat": "Snippet"
     }
   ]
 }

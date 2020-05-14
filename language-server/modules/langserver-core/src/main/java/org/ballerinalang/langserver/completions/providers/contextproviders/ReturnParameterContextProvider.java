@@ -18,6 +18,7 @@
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -28,7 +29,6 @@ import org.ballerinalang.langserver.completions.providers.AbstractCompletionProv
 import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +56,7 @@ public class ReturnParameterContextProvider extends AbstractCompletionProvider {
         List<Integer> defaultTokenTypes = ctx.get(SourcePruneKeys.LHS_DEFAULT_TOKEN_TYPES_KEY);
         List<CommonToken> defaultTokens = ctx.get(SourcePruneKeys.LHS_DEFAULT_TOKENS_KEY);
         Integer invocationTokenType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
-        List<Scope.ScopeEntry> visibleSymbols = ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
+        List<BCompiledSymbol> visibleSymbols = ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
         
         if (invocationTokenType == BallerinaParser.COLON) {
             String pkgName = defaultTokens.get(defaultTokenTypes.lastIndexOf(invocationTokenType) - 1).getText();

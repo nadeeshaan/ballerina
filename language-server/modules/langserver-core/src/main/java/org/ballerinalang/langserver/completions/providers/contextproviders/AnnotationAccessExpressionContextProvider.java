@@ -121,7 +121,7 @@ public class AnnotationAccessExpressionContextProvider extends AbstractCompletio
             annotationItem.setInsertTextFormat(InsertTextFormat.Snippet);
             annotationItem.setDetail(ItemResolverConstants.ANNOTATION_TYPE);
             annotationItem.setKind(CompletionItemKind.Property);
-            completionItems.add(new SymbolCompletionItem(ctx, symbol, annotationItem));
+//            completionItems.add(new SymbolCompletionItem(ctx, symbol, annotationItem));
         });
         
         return completionItems;
@@ -143,7 +143,9 @@ public class AnnotationAccessExpressionContextProvider extends AbstractCompletio
 
         boolean withAlias = (pkgAlias == null && !aliasComponent.isEmpty());
 
-        String label = CommonUtil.getAnnotationLabel(aliasComponent, annotationSymbol, withAlias);
+        // TODO: Fix this
+//        String label = CommonUtil.getAnnotationLabel(aliasComponent, annotationSymbol, withAlias);
+        String label = "TEST LABEL";
         String insertText = getInsertText(aliasComponent, annotationSymbol, withAlias);
         CompletionItem annotationItem = new CompletionItem();
         annotationItem.setLabel(label);
@@ -153,7 +155,7 @@ public class AnnotationAccessExpressionContextProvider extends AbstractCompletio
         annotationItem.setKind(CompletionItemKind.Property);
         if (currentPkgID != null && currentPkgID.name.value.equals(packageID.name.value)) {
             // If the annotation resides within the current package, no need to set the additional text edits
-            return new SymbolCompletionItem(ctx, annotationSymbol, annotationItem);
+            return new SymbolCompletionItem(ctx, null/*annotationSymbol*/, annotationItem);
         }
         List<BLangImportPackage> imports = ctx.get(DocumentServiceKeys.CURRENT_DOC_IMPORTS_KEY);
         Optional pkgImport = imports.stream()
@@ -174,7 +176,7 @@ public class AnnotationAccessExpressionContextProvider extends AbstractCompletio
             annotationItem.setAdditionalTextEdits(CommonUtil.getAutoImportTextEdits(packageID.orgName.getValue(),
                     packageID.name.getValue(), ctx));
         }
-        return new SymbolCompletionItem(ctx, annotationSymbol, annotationItem);
+        return new SymbolCompletionItem(ctx, null/*annotationSymbol*/, annotationItem);
     }
 
     private String getInsertText(String aliasComponent, BAnnotationSymbol annotationSymbol, boolean withAlias) {

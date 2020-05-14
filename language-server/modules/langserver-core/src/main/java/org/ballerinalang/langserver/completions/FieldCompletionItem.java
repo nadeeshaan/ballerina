@@ -17,10 +17,10 @@
  */
 package org.ballerinalang.langserver.completions;
 
+import org.ballerina.compiler.api.model.BallerinaField;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
 import org.eclipse.lsp4j.CompletionItem;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BField;
 
 /**
  * Represents a BField Completion Item.
@@ -30,9 +30,9 @@ import org.wso2.ballerinalang.compiler.semantics.model.types.BField;
 public class FieldCompletionItem implements LSCompletionItem {
     private LSContext lsContext;
     private CompletionItem completionItem;
-    private BField bField;
+    private BallerinaField bField;
 
-    public FieldCompletionItem(LSContext lsContext, BField bField, CompletionItem completionItem) {
+    public FieldCompletionItem(LSContext lsContext, BallerinaField bField, CompletionItem completionItem) {
         this.lsContext = lsContext;
         this.completionItem = completionItem;
         this.bField = bField;
@@ -47,7 +47,7 @@ public class FieldCompletionItem implements LSCompletionItem {
         return lsContext;
     }
 
-    public BField getBField() {
+    public BallerinaField getBField() {
         return bField;
     }
 }

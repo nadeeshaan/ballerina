@@ -18,6 +18,7 @@ package org.ballerinalang.langserver.completions.providers.scopeproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -33,7 +34,6 @@ import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 import org.wso2.ballerinalang.compiler.tree.BLangPackage;
 import org.wso2.ballerinalang.compiler.tree.BLangTestablePackage;
 
@@ -83,7 +83,7 @@ public class TopLevelScopeProvider extends AbstractCompletionProvider {
                 && BallerinaParser.LT == lhsDefaultTokens.get(lhsDefaultTokens.size() - 1).getType())) {
             completionItems.addAll(addTopLevelItems(ctx));
         }
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         completionItems.addAll(getBasicTypesItems(ctx, visibleSymbols));
         completionItems.addAll(this.getPackagesCompletionItems(ctx));
 
@@ -93,7 +93,7 @@ public class TopLevelScopeProvider extends AbstractCompletionProvider {
     private List<LSCompletionItem> getCompletionOnParameterContext(LSContext lsContext) {
         List<Integer> defaultTokenTypes = lsContext.get(SourcePruneKeys.LHS_DEFAULT_TOKEN_TYPES_KEY);
         List<CommonToken> defaultTokens = lsContext.get(SourcePruneKeys.LHS_DEFAULT_TOKENS_KEY);
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(lsContext.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(lsContext.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         Integer invocationType = lsContext.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
         if (defaultTokenTypes.contains(BallerinaParser.FUNCTION)) {
             if (invocationType == BallerinaParser.COLON) {
@@ -114,13 +114,14 @@ public class TopLevelScopeProvider extends AbstractCompletionProvider {
         }
         
         if (invocationType > -1) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filteredSymbols =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filteredSymbols =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(lsContext);
             return this.getCompletionItemList(filteredSymbols, lsContext);
         }
 
         List<LSCompletionItem> completionItems = new ArrayList<>();
-        visibleSymbols.removeIf(this.attachedSymbolFilter());
+        // TODO: Fix this
+//        visibleSymbols.removeIf(this.attachedSymbolFilter());
         completionItems.addAll(getBasicTypesItems(lsContext, visibleSymbols));
         completionItems.addAll(this.getPackagesCompletionItems(lsContext));
         return completionItems;

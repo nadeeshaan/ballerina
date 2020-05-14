@@ -19,6 +19,10 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaModule;
+import org.ballerina.compiler.api.model.BallerinaObjectVarSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
@@ -30,7 +34,6 @@ import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
 import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,14 +94,17 @@ public class ServiceDefinitionContextProvider extends AbstractCompletionProvider
                     Ideally this should be a syntax error and current grammar do not support it
                     Also Issue #18729 is also broken
                  */
-                List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-                List<Scope.ScopeEntry> filteredSymbols = this.filterListenerTypes(visibleSymbols);
+                List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+//                List<BCompiledSymbol> filteredSymbols = this.filterListenerTypes(visibleSymbols);
+                List<? extends BCompiledSymbol> filteredSymbols = visibleSymbols.stream()
+                        .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.LISTENER)
+                        .collect(Collectors.toList());
                 completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredSymbols), context));
                 completionItems.addAll(this.getPackagesCompletionItems(context));
                 break;
             }
             case BallerinaParser.COLON: {
-                List<Scope.ScopeEntry> listeners = this.filterListenersFromPackage(context);
+                List<BCompiledSymbol> listeners = this.filterListenersFromPackage(context);
                 completionItems.addAll(this.getCompletionItemList(listeners, context));
                 break;
             }
@@ -117,10 +123,10 @@ public class ServiceDefinitionContextProvider extends AbstractCompletionProvider
                 .collect(Collectors.toList());
     }
     
-    private List<Scope.ScopeEntry> filterListenersFromPackage(LSContext context) {
+    private List<BCompiledSymbol> filterListenersFromPackage(LSContext context) {
         List<CommonToken> defaultTokens = context.get(SourcePruneKeys.LHS_DEFAULT_TOKENS_KEY);
         List<Integer> tokenTypes = context.get(SourcePruneKeys.LHS_DEFAULT_TOKEN_TYPES_KEY);
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         if (tokenTypes == null) {
             return new ArrayList<>();
         }
@@ -131,16 +137,14 @@ public class ServiceDefinitionContextProvider extends AbstractCompletionProvider
         }
         String pkgName = defaultTokens.get(colonIndex - 1).getText();
 
-        Optional<Scope.ScopeEntry> symbolWithName = visibleSymbols.stream()
-                .filter(scopeEntry -> scopeEntry.symbol.name.getValue().equals(pkgName))
+        Optional<BCompiledSymbol> symbolWithName = visibleSymbols.stream()
+                .filter(symbol -> symbol.getName().equals(pkgName))
                 .findAny();
-        if (!symbolWithName.isPresent() || !(symbolWithName.get().symbol instanceof BPackageSymbol)) {
+        if (!symbolWithName.isPresent() || !(symbolWithName.get().getKind() == BallerinaSymbolKind.MODULE)) {
             return new ArrayList<>();
         }
-        BPackageSymbol pkgSymbol = ((BPackageSymbol) symbolWithName.get().symbol);
+        BallerinaModule pkgSymbol = ((BallerinaModule) symbolWithName.get());
 
-        return pkgSymbol.scope.entries.values().stream()
-                .filter(scopeEntry -> CommonUtil.isListenerObject(scopeEntry.symbol))
-                .collect(Collectors.toList());
+        return new ArrayList<>(pkgSymbol.getListeners());
     }
 }

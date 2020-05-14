@@ -211,7 +211,8 @@ public class HoverUtil {
             List<BVarSymbol> params = invokableSymbol.params;
             int invocationType = (ctx == null || ctx.get(NodeContextKeys.INVOCATION_TOKEN_TYPE_KEY) == null) ? -1
                     : ctx.get(NodeContextKeys.INVOCATION_TOKEN_TYPE_KEY);
-            skipFirstParam = CommonUtil.skipFirstParam(invokableSymbol, invocationType);
+            // TODO: Fix this
+//            skipFirstParam = CommonUtil.skipFirstParam(invokableSymbol, invocationType);
             for (int i = 0; i < params.size(); i++) {
                 if (i == 0 && skipFirstParam) {
                     continue;

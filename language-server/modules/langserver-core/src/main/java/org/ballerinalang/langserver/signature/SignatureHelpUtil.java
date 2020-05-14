@@ -90,7 +90,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.ballerinalang.langserver.common.utils.CommonUtil.getLastItem;
-import static org.ballerinalang.langserver.common.utils.FilterUtils.getLangLibScopeEntries;
 
 /**
  * Utility functions for the signature help.
@@ -406,8 +405,8 @@ public class SignatureHelpUtil {
                     BRecordTypeSymbol bRecordTypeSymbol = (BRecordTypeSymbol) typeSymbol;
                     visibleSymbols = new ArrayList<>(bRecordTypeSymbol.scope.entries.values());
                 } else {
-                    visibleSymbols = new ArrayList<>(getLangLibScopeEntries(typeSymbol.type, symbolTable, types)
-                            .values());
+//                    visibleSymbols = new ArrayList<>(getLangLibScopeEntries(context, typeSymbol.type);
+//                            .values());
                 }
             }
             index++;

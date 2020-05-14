@@ -945,7 +945,7 @@ public class TreeVisitor extends LSNodeVisitor {
         List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>();
         this.populateSymbolEnvNode(symbolEnv.node);
         symbolEntries.values().forEach(visibleSymbols::addAll);
-        lsContext.put(CommonKeys.VISIBLE_SYMBOLS_KEY, visibleSymbols);
+        lsContext.put(CommonKeys.VISIBLE_SYMBOLS_KEY2, visibleSymbols);
     }
 
     public Deque<Node> getBlockOwnerStack() {

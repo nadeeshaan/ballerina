@@ -19,6 +19,12 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
+import org.ballerina.compiler.api.model.BallerinaVariable;
+import org.ballerina.compiler.api.types.TypeDescKind;
+import org.ballerina.compiler.api.types.TypeDescriptor;
+import org.ballerina.compiler.api.types.UnionTypeDescriptor;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.SnippetBlock;
 import org.ballerinalang.langserver.common.CommonKeys;
@@ -36,10 +42,6 @@ import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BUnionType;
-import org.wso2.ballerinalang.compiler.util.TypeTags;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,12 +99,12 @@ public class StatementContextProvider extends AbstractCompletionProvider {
 
         Boolean forceRemovedStmt = context.get(SourcePruneKeys.FORCE_REMOVED_STATEMENT_WITH_PARENTHESIS_KEY);
         ArrayList<LSCompletionItem> completionItems;
-        List<Scope.ScopeEntry> filteredList = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> filteredList = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         if (forceRemovedStmt == null || !forceRemovedStmt) {
             // Add the visible static completion items
             completionItems = new ArrayList<>(getStaticCompletionItems(context));
             // Add the statement templates
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> itemList =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> itemList =
                     SymbolFilters.get(StatementTemplateFilter.class).filterItems(context);
             completionItems.addAll(this.getCompletionItemList(itemList, context));
             completionItems.addAll(this.getTypeguardDestructedItems(filteredList, context));
@@ -110,7 +112,9 @@ public class StatementContextProvider extends AbstractCompletionProvider {
             return this.getProvider(InvocationArgsContextProvider.class).getCompletions(context);
         }
 
-        filteredList.removeIf(this.attachedSymbolFilter());
+        // Todo: Fix
+//        filteredList.removeIf(this.attachedSymbolFilter());
+        filteredList.removeIf(symbol -> symbol.getKind() == BallerinaSymbolKind.ANNOTATION);
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredList), context));
         completionItems.addAll(this.getPackagesCompletionItems(context));
         // Now we need to sort the completion items and populate the completion items specific to the scope owner
@@ -147,20 +151,24 @@ public class StatementContextProvider extends AbstractCompletionProvider {
         return completionItems;
     }
 
-    private List<LSCompletionItem> getTypeguardDestructedItems(List<Scope.ScopeEntry> scopeEntries,
-                                                             LSContext ctx) {
+    private List<LSCompletionItem> getTypeguardDestructedItems(List<BCompiledSymbol> scopeEntries,
+                                                               LSContext ctx) {
         List<String> capturedSymbols = new ArrayList<>();
         // In the case of type guarded variables multiple symbols with the same symbol name and we ignore those
         return scopeEntries.stream()
-                .filter(scopeEntry -> (scopeEntry.symbol.type instanceof BUnionType)
-                        && !capturedSymbols.contains(scopeEntry.symbol.name.value))
+                .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.VARIABLE
+                        && ((BallerinaVariable) symbol).getTypeDescriptor().isPresent()
+                        && ((BallerinaVariable) symbol).getTypeDescriptor().get().getKind() == TypeDescKind.UNION
+                        && !capturedSymbols.contains(symbol.getName()))
                 .map(entry -> {
-                    capturedSymbols.add(entry.symbol.name.getValue());
-                    List<BType> errorTypes = new ArrayList<>();
-                    List<BType> resultTypes = new ArrayList<>();
-                    List<BType> members = new ArrayList<>(((BUnionType) entry.symbol.type).getMemberTypes());
+                    capturedSymbols.add(entry.getName());
+                    List<TypeDescriptor> errorTypes = new ArrayList<>();
+                    List<TypeDescriptor> resultTypes = new ArrayList<>();
+                    UnionTypeDescriptor tDesc = (UnionTypeDescriptor) ((BallerinaVariable) entry)
+                            .getTypeDescriptor().get();
+                    List<TypeDescriptor> members = new ArrayList<>(tDesc.getMemberTypes());
                     members.forEach(bType -> {
-                        if (bType.tag == TypeTags.ERROR) {
+                        if (bType.getKind() == TypeDescKind.ERROR) {
                             errorTypes.add(bType);
                         } else {
                             resultTypes.add(bType);
@@ -169,7 +177,7 @@ public class StatementContextProvider extends AbstractCompletionProvider {
                     if (errorTypes.size() == 1) {
                         resultTypes.addAll(errorTypes);
                     }
-                    String symbolName = entry.symbol.name.getValue();
+                    String symbolName = entry.getName();
                     String label = symbolName + " - typeguard " + symbolName;
                     String detail = "Destructure the variable " + symbolName + " with typeguard";
                     StringBuilder snippet = new StringBuilder();
@@ -181,7 +189,9 @@ public class StatementContextProvider extends AbstractCompletionProvider {
                         paramCounter++;
                     } else if (errorTypes.size() == 1) {
                         snippet.append("if (").append(symbolName).append(" is ")
-                                .append(CommonUtil.getBTypeName(errorTypes.get(0), ctx, true)).append(") {")
+                                // TODO: Fix
+//                                .append(CommonUtil.getBTypeName(errorTypes.get(0), ctx, true)).append(") {")
+                                .append(errorTypes.get(0).getSignature()).append(") {")
                                 .append(CommonUtil.LINE_SEPARATOR).append("\t${1}").append(CommonUtil.LINE_SEPARATOR)
                                 .append("}");
                         paramCounter++;
@@ -189,13 +199,15 @@ public class StatementContextProvider extends AbstractCompletionProvider {
                     int finalParamCounter = paramCounter;
                     String restSnippet = (!snippet.toString().isEmpty() && resultTypes.size() > 2) ? " else " : "";
                     restSnippet += IntStream.range(0, resultTypes.size() - paramCounter).mapToObj(value -> {
-                        BType bType = members.get(value);
+                        TypeDescriptor bType = members.get(value);
                         String placeHolder = "\t${" + (value + finalParamCounter) + "}";
-                        return "if (" + symbolName + " is " + CommonUtil.getBTypeName(bType, ctx, true) + ") {"
+                        // TODO: fix getTypename
+//                        return "if (" + symbolName + " is " + CommonUtil.getBTypeName(bType, ctx, true) + ") {"
+                        return "if (" + symbolName + " is " + bType.getSignature() + ") {"
                                 + CommonUtil.LINE_SEPARATOR + placeHolder + CommonUtil.LINE_SEPARATOR + "}";
                     }).collect(Collectors.joining(" else ")) + " else {" + CommonUtil.LINE_SEPARATOR + "\t${"
                             + members.size() + "}" + CommonUtil.LINE_SEPARATOR + "}";
-                    
+
                     snippet.append(restSnippet);
 
                     SnippetBlock cItemSnippet = new SnippetBlock(label, snippet.toString(), detail,

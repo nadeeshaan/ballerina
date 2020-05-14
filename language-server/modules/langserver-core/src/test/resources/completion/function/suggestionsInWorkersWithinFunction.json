@@ -175,9 +175,9 @@
     },
     {
       "label": "float",
-      "kind": "Unit",
-      "detail": "Float",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "float",
+      "sortText": "130",
       "insertText": "float",
       "insertTextFormat": "Snippet"
     },
@@ -191,16 +191,16 @@
     },
     {
       "label": "xml",
-      "kind": "Unit",
-      "detail": "Xml",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "xml",
+      "sortText": "130",
       "insertText": "xml",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "w1",
       "kind": "Variable",
-      "detail": "future<()>",
+      "detail": "worker",
       "sortText": "130",
       "insertText": "w1",
       "insertTextFormat": "Snippet"
@@ -208,113 +208,113 @@
     {
       "label": "w2",
       "kind": "Variable",
-      "detail": "future<()>",
+      "detail": "worker",
       "sortText": "130",
       "insertText": "w2",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "byte",
-      "kind": "Unit",
-      "detail": "Byte",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "byte",
+      "sortText": "130",
       "insertText": "byte",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "handle",
-      "kind": "Unit",
-      "detail": "Handle",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "handle",
+      "sortText": "130",
       "insertText": "handle",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "ArgsData",
-      "kind": "Struct",
-      "detail": "Record",
+      "kind": "Variable",
+      "detail": "ArgsData",
       "documentation": {
         "left": "Defaultable argument names. This is for internal use.\n"
       },
-      "sortText": "180",
+      "sortText": "130",
       "insertText": "ArgsData",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "null",
-      "kind": "Unit",
-      "detail": "Nil",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "null",
+      "sortText": "130",
       "insertText": "null",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "decimal",
-      "kind": "Unit",
-      "detail": "Decimal",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "decimal",
+      "sortText": "130",
       "insertText": "decimal",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "string",
-      "kind": "Unit",
-      "detail": "String",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "string",
+      "sortText": "130",
       "insertText": "string",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "sum",
       "kind": "Variable",
-      "detail": "int",
+      "detail": "sum",
       "sortText": "130",
       "insertText": "sum",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "error",
-      "kind": "Event",
-      "detail": "Error",
+      "kind": "Variable",
+      "detail": "error",
       "documentation": {
         "left": "Default error type.\nThe first type parameter describe reason type which must be a subtype of string,\nand the second type parameter is for the error detail.\nThe error detail record type may contain an optional message, optional cause,\nand any other pure constrained mapping values."
       },
-      "sortText": "200",
+      "sortText": "130",
       "insertText": "error",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "stream",
-      "kind": "Unit",
-      "detail": "Stream",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "stream",
+      "sortText": "130",
       "insertText": "stream",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "json",
-      "kind": "Unit",
-      "detail": "Json",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "json",
+      "sortText": "130",
       "insertText": "json",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "StrandData",
-      "kind": "Struct",
-      "detail": "Record",
+      "kind": "Variable",
+      "detail": "StrandData",
       "documentation": {
         "left": "Describes Strand execution details for the runtime.\n"
       },
-      "sortText": "180",
+      "sortText": "130",
       "insertText": "StrandData",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "map",
-      "kind": "Unit",
-      "detail": "Map",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "map",
+      "sortText": "130",
       "insertText": "map",
       "insertTextFormat": "Snippet"
     },
@@ -328,89 +328,89 @@
     },
     {
       "label": "anydata",
-      "kind": "Unit",
-      "detail": "Anydata",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "anydata",
+      "sortText": "130",
       "insertText": "anydata",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "i",
       "kind": "Variable",
-      "detail": "int",
+      "detail": "i",
       "sortText": "130",
       "insertText": "i",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "any",
-      "kind": "Unit",
-      "detail": "Any",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "any",
+      "sortText": "130",
       "insertText": "any",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "n",
       "kind": "Variable",
-      "detail": "int",
+      "detail": "n",
       "sortText": "130",
       "insertText": "n",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "int",
-      "kind": "Unit",
-      "detail": "Int",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "int",
+      "sortText": "130",
       "insertText": "int",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "Thread",
-      "kind": "TypeParameter",
-      "detail": "Finite",
-      "sortText": "170",
+      "kind": "Variable",
+      "detail": "Thread",
+      "sortText": "130",
       "insertText": "Thread",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "args",
       "kind": "Variable",
-      "detail": "string[]",
+      "detail": "args",
       "sortText": "130",
       "insertText": "args",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "boolean",
-      "kind": "Unit",
-      "detail": "Boolean",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "boolean",
+      "sortText": "130",
       "insertText": "boolean",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "future",
-      "kind": "Unit",
-      "detail": "Future",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "future",
+      "sortText": "130",
       "insertText": "future",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "service",
-      "kind": "Unit",
-      "detail": "Service",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "service",
+      "sortText": "130",
       "insertText": "service",
       "insertTextFormat": "Snippet"
     },
     {
       "label": "typedesc",
-      "kind": "Unit",
-      "detail": "Typedesc",
-      "sortText": "230",
+      "kind": "Variable",
+      "detail": "typedesc",
+      "sortText": "130",
       "insertText": "typedesc",
       "insertTextFormat": "Snippet"
     },

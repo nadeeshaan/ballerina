@@ -19,6 +19,7 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.SnippetBlock;
 import org.ballerinalang.langserver.common.CommonKeys;
@@ -30,7 +31,6 @@ import org.ballerinalang.langserver.completions.providers.AbstractCompletionProv
 import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,7 +64,7 @@ public class TypeDefinitionContextProvider extends AbstractCompletionProvider {
         } else if (lhsTokenTypes.contains(BallerinaParser.TYPE)) {
             List<LSCompletionItem> lsCItems = new ArrayList<>();
             Integer invocationType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
-            List<Scope.ScopeEntry> visibleSymbols = ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
+            List<BCompiledSymbol> visibleSymbols = ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
 
             if (invocationType == BallerinaParser.COLON) {
                 CommonToken pkgName = lhsDefaultTokens.get(lhsTokenTypes.indexOf(invocationType) - 1);

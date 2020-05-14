@@ -257,7 +257,8 @@ class BallerinaTextDocumentService implements TextDocumentService {
                 SignatureTreeVisitor signatureTreeVisitor = new SignatureTreeVisitor(context);
                 bLangPackage.accept(signatureTreeVisitor);
                 int activeParamIndex = 0;
-                List<Scope.ScopeEntry> visibleSymbols = context.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
+//                List<Scope.ScopeEntry> visibleSymbols = context.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
+                List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>();
                 if (visibleSymbols == null) {
                     throw new Exception("Couldn't find the symbol, visible symbols are NULL!");
                 }
@@ -417,7 +418,7 @@ class BallerinaTextDocumentService implements TextDocumentService {
             int line = params.getRange().getStart().getLine();
             int col = params.getRange().getStart().getCharacter();
             TextDocumentPositionParams positionParams = new TextDocumentPositionParams(params.getTextDocument(),
-                                                                                       new Position(line, col));
+                    new Position(line, col));
 
             LSContext context = new DocumentServiceOperationContext
                     .ServiceOperationContextBuilder(LSContextOperation.TXT_CODE_ACTION)
@@ -601,10 +602,10 @@ class BallerinaTextDocumentService implements TextDocumentService {
 
             try {
                 BLangPackage bLangPkg = LSModuleCompiler.getBLangPackage(context, docManager,
-                                                                         GotoImplementationCustomErrorStrategy.class,
-                                                                         false, false);
+                        GotoImplementationCustomErrorStrategy.class,
+                        false, false);
                 List<Location> locations = getImplementationLocation(bLangPkg, context, position.getPosition(),
-                                                                     lsDocument.getProjectRoot());
+                        lsDocument.getProjectRoot());
                 implementationLocations.addAll(locations);
             } catch (UserErrorException e) {
                 notifyUser("Goto Implementation", e);

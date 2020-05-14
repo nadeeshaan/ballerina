@@ -12,7 +12,7 @@
       "documentation": {
         "right": {
           "kind": "markdown",
-          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `int` arg1  \n- `string` arg2  \n- `http:Response` arg3"
+          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `int` arg1  \n- `string` arg2  \n- `http:Response` arg3  \n  \n**Returns** `()`   \n  \n"
         }
       },
       "sortText": "120",
@@ -30,7 +30,7 @@
       "documentation": {
         "right": {
           "kind": "markdown",
-          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `int` arg1  \n- `string` arg2  \n- `http:Response` arg3"
+          "value": "**Package:** _._  \n  \n  \n**Params**  \n- `int` arg1  \n- `string` arg2  \n- `http:Response` arg3  \n  \n**Returns** `()`   \n  \n"
         }
       },
       "sortText": "120",
@@ -62,7 +62,7 @@
       "documentation": {
         "right": {
           "kind": "markdown",
-          "value": "**Package:** _._  \n  \n  \n"
+          "value": "**Package:** _._  \n  \n  \n  \n  \n**Returns** `()`   \n  \n"
         }
       },
       "sortText": "120",

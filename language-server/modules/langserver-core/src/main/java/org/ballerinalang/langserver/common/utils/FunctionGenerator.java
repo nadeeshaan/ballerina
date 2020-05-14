@@ -15,16 +15,17 @@
  */
 package org.ballerinalang.langserver.common.utils;
 
+import org.ballerina.compiler.api.model.BallerinaFunctionSymbol;
+import org.ballerina.compiler.api.model.BallerinaParameter;
+import org.ballerina.compiler.api.types.ArrayTypeDescriptor;
 import org.ballerinalang.langserver.command.testgen.TestGenerator;
 import org.ballerinalang.langserver.common.ImportsAcceptor;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.compiler.DocumentServiceKeys;
 import org.ballerinalang.model.elements.PackageID;
-import org.ballerinalang.model.symbols.SymbolKind;
 import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BAttachedFunction;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableTypeSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BObjectTypeSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
@@ -161,54 +162,52 @@ public class FunctionGenerator {
     /**
      * Get the list of function arguments from the invokable symbol.
      *
-     * @param symbol Invokable symbol to extract the arguments
+     * @param functionSymbol function symbol to extract the arguments
      * @param ctx Lang Server Operation context
      * @return {@link List} List of arguments
      */
-    public static List<String> getFuncArguments(BInvokableSymbol symbol, LSContext ctx) {
+    public static List<String> getFuncArguments(BallerinaFunctionSymbol functionSymbol, LSContext ctx) {
         List<String> list = new ArrayList<>();
         int invocationType = (ctx == null || ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY) == null) ? -1
                 : ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
-        boolean skipFirstParam = CommonUtil.skipFirstParam(symbol, invocationType);
-        BVarSymbol restParam = symbol.restParam;
-        if (symbol.kind == null && SymbolKind.RECORD == symbol.owner.kind || SymbolKind.FUNCTION == symbol.owner.kind) {
-            if (symbol.type instanceof BInvokableType) {
-                BInvokableType bInvokableType = (BInvokableType) symbol.type;
-                if (bInvokableType.paramTypes.isEmpty()) {
-                    return list;
-                }
-                int argCounter = 1;
-                Set<String> argNames = new HashSet<>(); // To avoid name duplications
-                List<BType> parameterTypes = bInvokableType.getParameterTypes();
-                for (int i = 0; i < parameterTypes.size(); i++) {
-                    if (i == 0 && skipFirstParam) {
-                        continue;
-                    }
-                    BType bType = parameterTypes.get(i);
-                    String argName = CommonUtil.generateName(argCounter++, argNames);
-                    String argType = generateTypeDefinition(null, symbol.pkgID, bType, ctx);
-                    list.add(argType + " " + argName);
-                    argNames.add(argName);
-                }
-                if (restParam != null && (restParam.type instanceof BArrayType)) {
-                    list.add(CommonUtil.getBTypeName(((BArrayType) restParam.type).eType, ctx, false) + "... "
-                            + restParam.getName().getValue());
-                }
-            }
-        } else {
-            List<BVarSymbol> parameterDefs = new ArrayList<>(symbol.getParameters());
+        boolean skipFirstParam = CommonUtil.skipFirstParam(functionSymbol, invocationType);
+        Optional<BallerinaParameter> restParam = functionSymbol.getRestParam();
+//        if (symbol.kind == null && SymbolKind.RECORD == symbol.owner.kind || SymbolKind.FUNCTION == symbol.owner.kind) {
+//            if (symbol.type instanceof BInvokableType) {
+//                BInvokableType bInvokableType = (BInvokableType) symbol.type;
+//                if (bInvokableType.paramTypes.isEmpty()) {
+//                    return list;
+//                }
+//                int argCounter = 1;
+//                Set<String> argNames = new HashSet<>(); // To avoid name duplications
+//                List<BType> parameterTypes = bInvokableType.getParameterTypes();
+//                for (int i = 0; i < parameterTypes.size(); i++) {
+//                    if (i == 0 && skipFirstParam) {
+//                        continue;
+//                    }
+//                    BType bType = parameterTypes.get(i);
+//                    String argName = CommonUtil.generateName(argCounter++, argNames);
+//                    String argType = generateTypeDefinition(null, symbol.pkgID, bType, ctx);
+//                    list.add(argType + " " + argName);
+//                    argNames.add(argName);
+//                }
+//                if (restParam != null && (restParam.type instanceof BArrayType)) {
+//                    list.add(CommonUtil.getBTypeName(((BArrayType) restParam.type).eType, ctx, false) + "... "
+//                            + restParam.getName().getValue());
+//                }
+//            }
+//        } else {
+            List<BallerinaParameter> parameterDefs = new ArrayList<>(functionSymbol.getParams());
             for (int i = 0; i < parameterDefs.size(); i++) {
                 if (i == 0 && skipFirstParam) {
                     continue;
                 }
-                BVarSymbol param = parameterDefs.get(i);
-                list.add(CommonUtil.getBTypeName(param.type, ctx, true) + " " + param.getName());
+                list.add(parameterDefs.get(i).getSignature());
             }
-            if (restParam != null && (restParam.type instanceof BArrayType)) {
-                list.add(CommonUtil.getBTypeName(((BArrayType) restParam.type).eType, ctx, false) + "... "
-                        + restParam.getName().getValue());
-            }
-        }
+        restParam.ifPresent(ballerinaParameter ->
+                list.add(((ArrayTypeDescriptor) ballerinaParameter.getTypeDescriptor()).getMemberTypeDescriptor()
+                        .getSignature() + "... " + ballerinaParameter.getName().get()));
+//        }
         return (!list.isEmpty()) ? list : new ArrayList<>();
     }
 

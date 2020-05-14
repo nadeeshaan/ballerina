@@ -25,7 +25,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.ballerinalang.jvm.util.BLangConstants;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaAnnotationSymbol;
+import org.ballerina.compiler.api.model.BallerinaField;
+import org.ballerina.compiler.api.model.BallerinaFunctionSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
+import org.ballerina.compiler.api.model.ModuleID;
+import org.ballerina.compiler.api.types.ArrayTypeDescriptor;
+import org.ballerina.compiler.api.types.RecordTypeDescriptor;
+import org.ballerina.compiler.api.types.TypeDescKind;
+import org.ballerina.compiler.api.types.TypeDescriptor;
+import org.ballerina.compiler.api.types.TypeReferenceTypeDescriptor;
+import org.ballerina.compiler.api.types.UnionTypeDescriptor;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.ImportsAcceptor;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -58,15 +69,11 @@ import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
 import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 import org.wso2.ballerinalang.compiler.semantics.model.SymbolEnv;
 import org.wso2.ballerinalang.compiler.semantics.model.SymbolTable;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BAnnotationSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BObjectTypeSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BOperatorSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
 import org.wso2.ballerinalang.compiler.semantics.model.types.BArrayType;
 import org.wso2.ballerinalang.compiler.semantics.model.types.BErrorType;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BField;
 import org.wso2.ballerinalang.compiler.semantics.model.types.BFiniteType;
 import org.wso2.ballerinalang.compiler.semantics.model.types.BFutureType;
 import org.wso2.ballerinalang.compiler.semantics.model.types.BInvokableType;
@@ -90,7 +97,6 @@ import org.wso2.ballerinalang.compiler.tree.expressions.BLangExpression;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangInvocation;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangSimpleVariableDef;
 import org.wso2.ballerinalang.compiler.util.CompilerContext;
-import org.wso2.ballerinalang.compiler.util.Name;
 import org.wso2.ballerinalang.compiler.util.diagnotic.DiagnosticPos;
 import org.wso2.ballerinalang.util.Flags;
 
@@ -264,25 +270,26 @@ public class CommonUtil {
     /**
      * Get the Annotation completion Item.
      *
-     * @param packageID        Package Id
+     * @param moduleID         Module Id
      * @param annotationSymbol BLang annotation to extract the completion Item
      * @param ctx              LS Service operation context, in this case completion context
      * @param pkgAlias         LS Service operation context, in this case completion context
      * @return {@link LSCompletionItem} Completion item for the annotation
      */
-    public static LSCompletionItem getAnnotationCompletionItem(PackageID packageID, BAnnotationSymbol annotationSymbol,
+    public static LSCompletionItem getAnnotationCompletionItem(ModuleID moduleID,
+                                                               BallerinaAnnotationSymbol annotationSymbol,
                                                                LSContext ctx, CommonToken pkgAlias,
                                                                Map<String, String> pkgAliasMap) {
         PackageID currentPkgID = ctx.get(DocumentServiceKeys.CURRENT_PACKAGE_ID_KEY);
         String currentProjectOrgName = currentPkgID == null ? "" : currentPkgID.orgName.value;
 
         String aliasComponent = "";
-        if (pkgAliasMap.containsKey(packageID.toString())) {
+        if (pkgAliasMap.containsKey(moduleID.toString())) {
             // Check if the imported packages contains the particular package with the alias
-            aliasComponent = pkgAliasMap.get(packageID.toString());
-        } else if (currentPkgID != null && !currentPkgID.name.value.equals(packageID.name.value)
-                && !isLangLib(packageID)) {
-            aliasComponent = CommonUtil.getLastItem(packageID.getNameComps()).getValue();
+            aliasComponent = pkgAliasMap.get(moduleID.toString());
+        } else if (currentPkgID != null && !currentPkgID.name.value.equals(moduleID.getModulePrefix())
+                && !moduleID.isLangLib()) {
+            aliasComponent = moduleID.getModulePrefix();
         }
 
         boolean withAlias = (pkgAlias == null && !aliasComponent.isEmpty());
@@ -295,7 +302,7 @@ public class CommonUtil {
         annotationItem.setInsertTextFormat(InsertTextFormat.Snippet);
         annotationItem.setDetail(ItemResolverConstants.ANNOTATION_TYPE);
         annotationItem.setKind(CompletionItemKind.Property);
-        if (currentPkgID != null && currentPkgID.name.value.equals(packageID.name.value)) {
+        if (currentPkgID != null && currentPkgID.name.value.equals(moduleID.getModulePrefix())) {
             // If the annotation resides within the current package, no need to set the additional text edits
             return new SymbolCompletionItem(ctx, annotationSymbol, annotationItem);
         }
@@ -305,18 +312,15 @@ public class CommonUtil {
                     String orgName = bLangImportPackage.orgName.value;
                     String importPkgName = (orgName.equals("") ? currentProjectOrgName : orgName) + "/"
                             + CommonUtil.getPackageNameComponentsCombined(bLangImportPackage);
-                    String annotationPkgOrgName = packageID.orgName.getValue();
-                    String annotationPkgName = annotationPkgOrgName + "/"
-                            + packageID.nameComps.stream()
-                            .map(Name::getValue)
-                            .collect(Collectors.joining("."));
+                    String annotationPkgOrgName = moduleID.getOrgName();
+                    String annotationPkgName = annotationPkgOrgName + "/" + moduleID.getModuleName();
                     return importPkgName.equals(annotationPkgName);
                 })
                 .findAny();
         // if the particular import statement not available we add the additional text edit to auto import
-        if (!pkgImport.isPresent() && !isLangLib(packageID)) {
-            annotationItem.setAdditionalTextEdits(getAutoImportTextEdits(packageID.orgName.getValue(),
-                                                                         packageID.name.getValue(), ctx));
+        if (!pkgImport.isPresent() && !moduleID.isLangLib()) {
+            annotationItem.setAdditionalTextEdits(getAutoImportTextEdits(moduleID.getOrgName(),
+                    moduleID.getModuleName(), ctx));
         }
         return new SymbolCompletionItem(ctx, annotationSymbol, annotationItem);
     }
@@ -330,7 +334,8 @@ public class CommonUtil {
      * @param pkgAliasMap      Package alias map for the file
      * @return {@link CompletionItem} Completion item for the annotation
      */
-    public static LSCompletionItem getAnnotationCompletionItem(PackageID packageID, BAnnotationSymbol annotationSymbol,
+    public static LSCompletionItem getAnnotationCompletionItem(ModuleID packageID,
+                                                               BallerinaAnnotationSymbol annotationSymbol,
                                                                LSContext ctx, Map<String, String> pkgAliasMap) {
         return getAnnotationCompletionItem(packageID, annotationSymbol, ctx, null, pkgAliasMap);
     }
@@ -373,21 +378,22 @@ public class CommonUtil {
      * @param withAlias        insert text with alias
      * @return {@link String} Insert text
      */
-    private static String getAnnotationInsertText(String aliasComponent, BAnnotationSymbol annotationSymbol,
+    private static String getAnnotationInsertText(String aliasComponent, BallerinaAnnotationSymbol annotationSymbol,
                                                   boolean withAlias) {
         StringBuilder annotationStart = new StringBuilder();
         if (withAlias) {
             annotationStart.append(aliasComponent).append(CommonKeys.PKG_DELIMITER_KEYWORD);
         }
-        if (annotationSymbol.attachedType != null) {
-            annotationStart.append(annotationSymbol.getName().getValue());
-            BType attachedType = annotationSymbol.attachedType.type;
-            BType resultType = attachedType instanceof BArrayType ? ((BArrayType) attachedType).eType : attachedType;
-            if (resultType instanceof BRecordType || resultType instanceof BMapType) {
-                List<BField> requiredFields = new ArrayList<>();
+        if (annotationSymbol.getTypeDescriptor().isPresent()) {
+            annotationStart.append(annotationSymbol.getName());
+            TypeDescriptor attachedType = annotationSymbol.getTypeDescriptor().get();
+            TypeDescriptor resultType = attachedType.getKind() == TypeDescKind.ARRAY ?
+                    ((ArrayTypeDescriptor) attachedType).getMemberTypeDescriptor() : attachedType;
+            if (resultType.getKind() == TypeDescKind.RECORD || resultType.getKind() == TypeDescKind.MAP) {
+                List<BallerinaField> requiredFields = new ArrayList<>();
                 annotationStart.append(" ").append(CommonKeys.OPEN_BRACE_KEY).append(LINE_SEPARATOR);
-                if (resultType instanceof BRecordType) {
-                    requiredFields.addAll(getRecordRequiredFields(((BRecordType) resultType)));
+                if (resultType.getKind() == TypeDescKind.RECORD) {
+                    requiredFields.addAll(getRecordRequiredFields(((RecordTypeDescriptor) resultType)));
                 }
                 List<String> insertTexts = new ArrayList<>();
                 requiredFields.forEach(field -> {
@@ -401,7 +407,7 @@ public class CommonUtil {
                 annotationStart.append(LINE_SEPARATOR).append(CommonKeys.CLOSE_BRACE_KEY);
             }
         } else {
-            annotationStart.append(annotationSymbol.getName().getValue());
+            annotationStart.append(annotationSymbol.getName());
         }
 
         return annotationStart.toString();
@@ -415,9 +421,68 @@ public class CommonUtil {
      * @param withAlias      label with alias
      * @return {@link String} Label string
      */
-    public static String getAnnotationLabel(String aliasComponent, BAnnotationSymbol annotation, boolean withAlias) {
+    public static String getAnnotationLabel(String aliasComponent, BallerinaAnnotationSymbol annotation,
+                                            boolean withAlias) {
         String pkgComponent = withAlias ? aliasComponent + CommonKeys.PKG_DELIMITER_KEYWORD : "";
-        return pkgComponent + annotation.getName().getValue();
+        return pkgComponent + annotation.getName();
+    }
+
+    /**
+     * Get the default value for the given BType.
+     *
+     * @param bType BType to get the default value
+     * @return {@link String}   Default value as a String
+     */
+    public static String getDefaultValueForType(TypeDescriptor bType) {
+        String typeString = "()";
+        if (bType == null) {
+            return "()";
+        }
+        switch (bType.getKind()) {
+            case BUILTIN:
+                switch (bType.getSignature()) {
+                    case "int":
+                        typeString = Integer.toString(0);
+                        break;
+                    case "float":
+                        typeString = Float.toString(0);
+                        break;
+                    case "string":
+                        typeString = "\"\"";
+                        break;
+                    case "boolean":
+                        typeString = Boolean.toString(false);
+                        break;
+                }
+                break;
+            case ARRAY:
+            case RECORD:
+            case MAP:
+                typeString = "{}";
+                break;
+            case OBJECT:
+                typeString = "new()";
+                break;
+//            case FINITE:
+//                List<BLangExpression> valueSpace = new ArrayList<>(((BFiniteType) bType).getValueSpace());
+//                String value = valueSpace.get(0).toString();
+//                BType type = valueSpace.get(0).type;
+//                typeString = value;
+//                if (type.toString().equals("string")) {
+//                    typeString = "\"" + typeString + "\"";
+//                }
+//                break;
+            case UNION:
+                List<TypeDescriptor> memberTypes =
+                        new ArrayList<>(((UnionTypeDescriptor) bType).getMemberTypes());
+                typeString = getDefaultValueForType(memberTypes.get(0));
+                break;
+            case STREAM:
+            default:
+                typeString = "()";
+                break;
+        }
+        return typeString;
     }
 
     /**
@@ -524,14 +589,14 @@ public class CommonUtil {
      * @param fields  List of struct fields
      * @return {@link List}     List of completion items for the struct fields
      */
-    public static List<LSCompletionItem> getRecordFieldCompletionItems(LSContext context, List<BField> fields) {
+    public static List<LSCompletionItem> getRecordFieldCompletionItems(LSContext context, List<BallerinaField> fields) {
         List<LSCompletionItem> completionItems = new ArrayList<>();
         fields.forEach(field -> {
             String insertText = getRecordFieldCompletionInsertText(field, 0);
             CompletionItem fieldItem = new CompletionItem();
             fieldItem.setInsertText(insertText);
             fieldItem.setInsertTextFormat(InsertTextFormat.Snippet);
-            fieldItem.setLabel(field.getName().getValue());
+            fieldItem.setLabel(field.getName());
             fieldItem.setDetail(ItemResolverConstants.FIELD_TYPE);
             fieldItem.setKind(CompletionItemKind.Field);
             fieldItem.setSortText(Priority.PRIORITY120.toString());
@@ -541,34 +606,35 @@ public class CommonUtil {
         return completionItems;
     }
 
-    /**
-     * Get the completion item to fill all the struct fields.
-     *
-     * @param context Language Server Operation Context
-     * @param fields  List of struct fields
-     * @return {@link LSCompletionItem}   Completion Item to fill all the options
-     */
-    public static LSCompletionItem getFillAllStructFieldsItem(LSContext context, List<BField> fields) {
-        List<String> fieldEntries = new ArrayList<>();
-
-        for (BField bStructField : fields) {
-            String defaultFieldEntry = bStructField.getName().getValue()
-                    + CommonKeys.PKG_DELIMITER_KEYWORD + " " + getDefaultValueForType(bStructField.getType());
-            fieldEntries.add(defaultFieldEntry);
-        }
-
-        String insertText = String.join(("," + LINE_SEPARATOR), fieldEntries);
-        String label = "Add All Attributes";
-
-        CompletionItem completionItem = new CompletionItem();
-        completionItem.setLabel(label);
-        completionItem.setInsertText(insertText);
-        completionItem.setDetail(ItemResolverConstants.NONE);
-        completionItem.setKind(CompletionItemKind.Property);
-        completionItem.setSortText(Priority.PRIORITY110.toString());
-
-        return new StaticCompletionItem(context, completionItem);
-    }
+//    /**
+//     * Get the completion item to fill all the struct fields.
+//     *
+//     * @param context Language Server Operation Context
+//     * @param fields  List of struct fields
+//     * @return {@link LSCompletionItem}   Completion Item to fill all the options
+//     */
+//    public static LSCompletionItem getFillAllStructFieldsItem(LSContext context, List<BallerinaField> fields) {
+//        List<String> fieldEntries = new ArrayList<>();
+//
+//        for (BallerinaField ballerinaField : fields) {
+//            String defaultFieldEntry = ballerinaField.getName()
+//                    + CommonKeys.PKG_DELIMITER_KEYWORD + " "
+//                    + getDefaultValueForType(ballerinaField.getTypeDescriptor());
+//            fieldEntries.add(defaultFieldEntry);
+//        }
+//
+//        String insertText = String.join(("," + LINE_SEPARATOR), fieldEntries);
+//        String label = "Add All Attributes";
+//
+//        CompletionItem completionItem = new CompletionItem();
+//        completionItem.setLabel(label);
+//        completionItem.setInsertText(insertText);
+//        completionItem.setDetail(ItemResolverConstants.NONE);
+//        completionItem.setKind(CompletionItemKind.Property);
+//        completionItem.setSortText(Priority.PRIORITY110.toString());
+//
+//        return new StaticCompletionItem(context, completionItem);
+//    }
 
     /**
      * Get the BType name as string.
@@ -698,7 +764,7 @@ public class CommonUtil {
     private static String getArrayTypeName(BArrayType arrayType, LSContext ctx, boolean doSimplify) {
         return getBTypeName(arrayType.eType, ctx, doSimplify) + "[]";
     }
-    
+
     private static boolean isLangLib(PackageID packageID) {
         return packageID.getOrgName().getValue().equals("ballerina")
                 && packageID.getName().getValue().startsWith("lang.");
@@ -799,19 +865,20 @@ public class CommonUtil {
      * @param symbol Symbol to be evaluated
      * @return {@link Boolean}  valid status
      */
-    public static boolean isValidInvokableSymbol(BSymbol symbol) {
-        if (!(symbol instanceof BInvokableSymbol)) {
-            return false;
-        }
-
-        BInvokableSymbol bInvokableSymbol = (BInvokableSymbol) symbol;
-        return ((bInvokableSymbol.kind == null
-                && (SymbolKind.RECORD.equals(bInvokableSymbol.owner.kind)
-                || SymbolKind.FUNCTION.equals(bInvokableSymbol.owner.kind)))
-                || SymbolKind.FUNCTION.equals(bInvokableSymbol.kind)) &&
-                (!(bInvokableSymbol.name.value.endsWith(BLangConstants.INIT_FUNCTION_SUFFIX)
-                        || bInvokableSymbol.name.value.endsWith(BLangConstants.START_FUNCTION_SUFFIX)
-                        || bInvokableSymbol.name.value.endsWith(BLangConstants.STOP_FUNCTION_SUFFIX)));
+    public static boolean isValidInvokableSymbol(BCompiledSymbol symbol) {
+        return true;
+//        if (!(symbol instanceof BallerinaFunctionSymbol)) {
+//            return false;
+//        }
+//
+//        BallerinaFunctionSymbol bInvokableSymbol = (BallerinaFunctionSymbol) symbol;
+//        return ((bInvokableSymbol.kind == null
+//                && (SymbolKind.RECORD.equals(bInvokableSymbol.owner.kind)
+//                || SymbolKind.FUNCTION.equals(bInvokableSymbol.owner.kind)))
+//                || SymbolKind.FUNCTION.equals(bInvokableSymbol.kind)) &&
+//                (!(bInvokableSymbol.name.value.endsWith(BLangConstants.INIT_FUNCTION_SUFFIX)
+//                        || bInvokableSymbol.name.value.endsWith(BLangConstants.START_FUNCTION_SUFFIX)
+//                        || bInvokableSymbol.name.value.endsWith(BLangConstants.STOP_FUNCTION_SUFFIX)));
     }
 
     /**
@@ -826,10 +893,13 @@ public class CommonUtil {
                 .collect(Collectors.toList());
     }
 
+    public static boolean isInvalidSymbol(BCompiledSymbol symbol) {
+        return ("_".equals(symbol.getName())
+                || symbolContainsInvalidChars(symbol));
+    }
+
     public static boolean isInvalidSymbol(BSymbol symbol) {
-        return ("_".equals(symbol.name.getValue())
-                || symbol instanceof BAnnotationSymbol
-                || symbol instanceof BOperatorSymbol
+        return ("_".equals(symbol.getName().value)
                 || symbolContainsInvalidChars(symbol));
     }
 
@@ -857,8 +927,8 @@ public class CommonUtil {
         String relativeFilePath = ctx.get(DocumentServiceKeys.RELATIVE_FILE_PATH_KEY);
         BLangCompilationUnit filteredCUnit = pkgNode.compUnits.stream()
                 .filter(cUnit ->
-                                cUnit.getPosition().getSource().cUnitName.replace("/", FILE_SEPARATOR)
-                                        .equals(relativeFilePath))
+                        cUnit.getPosition().getSource().cUnitName.replace("/", FILE_SEPARATOR)
+                                .equals(relativeFilePath))
                 .findAny().orElse(null);
         List<TopLevelNode> topLevelNodes = filteredCUnit == null
                 ? new ArrayList<>()
@@ -918,6 +988,18 @@ public class CommonUtil {
         return new ArrayList<>(tokenStream.getTokens());
     }
 
+    public static boolean symbolContainsInvalidChars(BCompiledSymbol bSymbol) {
+        List<String> symbolNameComponents = Arrays.asList(bSymbol.getName().split("\\."));
+        String symbolName = CommonUtil.getLastItem(symbolNameComponents);
+
+        return symbolName != null && (symbolName.contains(CommonKeys.LT_SYMBOL_KEY)
+                || symbolName.contains(CommonKeys.GT_SYMBOL_KEY)
+                || symbolName.contains(CommonKeys.DOLLAR_SYMBOL_KEY)
+                || symbolName.equals("main")
+                || symbolName.endsWith(".new")
+                || symbolName.startsWith("0"));
+    }
+
     public static boolean symbolContainsInvalidChars(BSymbol bSymbol) {
         List<String> symbolNameComponents = Arrays.asList(bSymbol.getName().getValue().split("\\."));
         String symbolName = CommonUtil.getLastItem(symbolNameComponents);
@@ -933,19 +1015,19 @@ public class CommonUtil {
     /**
      * Get the function name from the Invokable symbol.
      *
-     * @param bInvokableSymbol symbol
+     * @param functionSymbol function symbol
      * @return {@link String} Function name
      */
-    public static String getFunctionNameFromSymbol(BInvokableSymbol bInvokableSymbol) {
-        String[] funcNameComponents = bInvokableSymbol.getName().getValue().split("\\.");
+    public static String getFunctionNameFromSymbol(BallerinaFunctionSymbol functionSymbol) {
+        String[] funcNameComponents = functionSymbol.getName().split("\\.");
         String functionName = funcNameComponents[funcNameComponents.length - 1];
 
         // If there is a receiver symbol, then the name comes with the package name and struct name appended.
         // Hence we need to remove it
-        if (bInvokableSymbol.receiverSymbol != null) {
-            String receiverType = bInvokableSymbol.receiverSymbol.getType().toString();
-            functionName = functionName.replace(receiverType + ".", "");
-        }
+//        if (bInvokableSymbol.receiverSymbol != null) {
+//            String receiverType = bInvokableSymbol.receiverSymbol.getType().toString();
+//            functionName = functionName.replace(receiverType + ".", "");
+//        }
 
         return functionName;
     }
@@ -953,58 +1035,54 @@ public class CommonUtil {
     /**
      * Get the function invocation signature.
      *
-     * @param symbol       ballerina function instance
-     * @param functionName function name
-     * @param ctx          Language Server Operation context
+     * @param functionSymbol function symbol to evaluate
+     * @param functionName   function name
+     * @param ctx            Language Server Operation context
      * @return {@link Pair} of insert text(left-side) and signature label(right-side)
      */
-    public static Pair<String, String> getFunctionInvocationSignature(BInvokableSymbol symbol, String functionName,
+    public static Pair<String, String> getFunctionInvocationSignature(BallerinaFunctionSymbol functionSymbol,
+                                                                      String functionName,
                                                                       LSContext ctx) {
-        if (symbol == null) {
+        if (functionSymbol == null) {
             // Symbol can be null for object init functions without an explicit __init
             return ImmutablePair.of(functionName + "();", functionName + "()");
         }
         StringBuilder signature = new StringBuilder(functionName + "(");
         StringBuilder insertText = new StringBuilder(functionName + "(");
-        List<String> funcArguments = FunctionGenerator.getFuncArguments(symbol, ctx);
+        List<String> funcArguments = FunctionGenerator.getFuncArguments(functionSymbol, ctx);
         if (!funcArguments.isEmpty()) {
             signature.append(String.join(", ", funcArguments));
             insertText.append("${1}");
         }
         signature.append(")");
         insertText.append(")");
-        if (symbol.type.getReturnType() == null || symbol.type.getReturnType() instanceof BNilType) {
+        if (!functionSymbol.getReturnType().isPresent()
+                || functionSymbol.getReturnType().get().getKind() == TypeDescKind.NIL) {
             insertText.append(";");
         }
         String initString = "(";
         String endString = ")";
 
-        BType returnType = symbol.type.getReturnType();
-        if (returnType != null && !(returnType instanceof BNilType)) {
-            signature.append(initString).append(CommonUtil.getBTypeName(returnType, ctx, false));
+        Optional<TypeDescriptor> returnType = functionSymbol.getReturnType();
+        if (returnType.isPresent() && returnType.get().getKind() != TypeDescKind.NIL) {
+            signature.append(initString).append(returnType.get().getSignature());
+//            signature.append(initString).append(CommonUtil.getBTypeName(returnType.get(), ctx, false));
             signature.append(endString);
         }
 
         return new ImmutablePair<>(insertText.toString(), signature.toString());
     }
 
-    /**
-     * Get visible worker symbols from context.
-     *
-     * @param context Language Server operation conext
-     * @return {@link List} filtered visible symbols
-     */
-    public static List<Scope.ScopeEntry> getWorkerSymbols(LSContext context) {
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        return visibleSymbols.stream().filter(scopeEntry -> {
-            BType bType = scopeEntry.symbol.type;
-            return bType instanceof BFutureType && ((BFutureType) bType).workerDerivative;
-        }).collect(Collectors.toList());
+    public static List<BCompiledSymbol> getWorkerSymbols(LSContext context) {
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        return visibleSymbols.stream().
+                filter(symbol -> symbol.getKind() == BallerinaSymbolKind.WORKER)
+                .collect(Collectors.toList());
     }
 
-    private static List<BField> getRecordRequiredFields(BRecordType recordType) {
-        return recordType.fields.values().stream()
-                .filter(field -> (field.symbol.flags & Flags.REQUIRED) == Flags.REQUIRED)
+    private static List<BallerinaField> getRecordRequiredFields(RecordTypeDescriptor recordType) {
+        return recordType.getFieldDescriptors().stream()
+                .filter(BallerinaField::isRequired)
                 .collect(Collectors.toList());
     }
 
@@ -1014,11 +1092,11 @@ public class CommonUtil {
      * @param bField BField to evaluate
      * @return {@link String} Insert text
      */
-    private static String getRecordFieldCompletionInsertText(BField bField, int tabOffset) {
-        BType fieldType = bField.getType();
-        StringBuilder insertText = new StringBuilder(bField.getName().getValue() + ": ");
-        if (fieldType instanceof BRecordType) {
-            List<BField> requiredFields = getRecordRequiredFields((BRecordType) fieldType);
+    private static String getRecordFieldCompletionInsertText(BallerinaField bField, int tabOffset) {
+        TypeDescriptor fieldType = bField.getTypeDescriptor();
+        StringBuilder insertText = new StringBuilder(bField.getName() + ": ");
+        if (fieldType.getKind() == TypeDescKind.RECORD) {
+            List<BallerinaField> requiredFields = getRecordRequiredFields((RecordTypeDescriptor) fieldType);
             if (requiredFields.isEmpty()) {
                 insertText.append("{").append("${1}}");
                 return insertText.toString();
@@ -1026,7 +1104,7 @@ public class CommonUtil {
             insertText.append("{").append(LINE_SEPARATOR);
             int tabCount = tabOffset;
             List<String> requiredFieldInsertTexts = new ArrayList<>();
-            for (BField requiredField : requiredFields) {
+            for (BallerinaField requiredField : requiredFields) {
                 String fieldText = String.join("", Collections.nCopies(tabCount + 1, "\t")) +
                         getRecordFieldCompletionInsertText(requiredField, tabCount) +
                         String.join("", Collections.nCopies(tabCount, "\t"));
@@ -1037,12 +1115,12 @@ public class CommonUtil {
             insertText.append(LINE_SEPARATOR)
                     .append(String.join("", Collections.nCopies(tabOffset, "\t")))
                     .append("}");
-        } else if (fieldType instanceof BArrayType) {
+        } else if (fieldType.getKind() == TypeDescKind.ARRAY) {
             insertText.append("[").append("${1}").append("]");
-        } else if (fieldType.tsymbol != null && fieldType.tsymbol.name.getValue().equals("string")) {
+        } else if (fieldType.getSignature().equals("string")) {
             insertText.append("\"").append("${1}").append("\"");
         } else {
-            insertText.append("${1:").append(getDefaultValueForType(bField.getType())).append("}");
+            insertText.append("${1:").append(getDefaultValueForType(bField.getTypeDescriptor())).append("}");
         }
 
         return insertText.toString();
@@ -1070,8 +1148,8 @@ public class CommonUtil {
      *
      * @return {@link Predicate}    Predicate for the check
      */
-    public static Predicate<Scope.ScopeEntry> invalidSymbolsPredicate() {
-        return scopeEntry -> scopeEntry != null && isInvalidSymbol(scopeEntry.symbol);
+    public static Predicate<BCompiledSymbol> invalidSymbolsPredicate() {
+        return symbol -> symbol != null && isInvalidSymbol(symbol);
     }
 
     /**
@@ -1291,12 +1369,12 @@ public class CommonUtil {
      * When showing a lang lib invokable symbol over DOT(invocation) we do not show the first param, but when we
      * showing the invocation over package of the langlib with the COLON we show the first param
      *
-     * @param invokableSymbol invokable symbol
-     * @param invocationType  delimiter
+     * @param functionSymbol function symbol
+     * @param invocationType delimiter
      * @return {@link Boolean} whether we show the first param or not
      */
-    public static boolean skipFirstParam(BInvokableSymbol invokableSymbol, int invocationType) {
-        return isLangLibSymbol(invokableSymbol) && invocationType != BallerinaParser.COLON;
+    public static boolean skipFirstParam(BallerinaFunctionSymbol functionSymbol, int invocationType) {
+        return functionSymbol.isLangLib() && invocationType != BallerinaParser.COLON;
     }
 
     /**
@@ -1329,16 +1407,6 @@ public class CommonUtil {
             }
         }));
         return strings;
-    }
-
-    /**
-     * Check whether the given symbol is a symbol within the langlib.
-     *
-     * @param symbol BSymbol to evaluate
-     * @return {@link Boolean} whether langlib symbol or not
-     */
-    public static boolean isLangLibSymbol(BSymbol symbol) {
-        return ((symbol.flags & Flags.LANG_LIB) == Flags.LANG_LIB);
     }
 
     /**
@@ -1386,5 +1454,35 @@ public class CommonUtil {
         } catch (URISyntaxException e) {
             return false;
         }
+    }
+
+    /**
+     * Get the annotations in module.
+     *
+     * @param context language server operation context
+     * @return {@link List} of annotation symbols in the current module
+     */
+    public static List<BallerinaAnnotationSymbol> getAnnotationsInModule(LSContext context) {
+        String currentPkg = context.get(DocumentServiceKeys.CURRENT_BLANG_PACKAGE_CONTEXT_KEY)
+                .packageID.name.getValue();
+        List<BCompiledSymbol> visibleSymbols = context.get(CommonKeys.VISIBLE_SYMBOLS_KEY);
+        return visibleSymbols.stream()
+                .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.ANNOTATION
+                        && symbol.getModuleID().getModulePrefix().equals(currentPkg))
+                .map(symbol -> (BallerinaAnnotationSymbol) symbol)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get the raw type of a given type descriptor.
+     *
+     * @param typeDescriptor type descriptor to evaluate
+     * @return {@link TypeDescriptor} extracted type descriptor
+     */
+    public static TypeDescriptor getRawType(TypeDescriptor typeDescriptor) {
+        if (typeDescriptor.getKind() == TypeDescKind.TYPE_REFERENCE) {
+            return ((TypeReferenceTypeDescriptor) typeDescriptor).getTypeDescriptor();
+        }
+        return typeDescriptor;
     }
 }

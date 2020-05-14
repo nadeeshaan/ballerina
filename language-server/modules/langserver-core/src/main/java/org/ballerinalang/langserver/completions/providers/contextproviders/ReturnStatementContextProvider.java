@@ -17,9 +17,9 @@
 */
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
-import org.ballerinalang.langserver.common.utils.CommonUtil;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
@@ -30,16 +30,9 @@ import org.ballerinalang.langserver.completions.util.filters.DelimiterBasedConte
 import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BTypeSymbol;
-import org.wso2.ballerinalang.util.Flags;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Completion provider for the return parser rule context.
@@ -56,29 +49,29 @@ public class ReturnStatementContextProvider extends AbstractCompletionProvider {
     @Override
     public List<LSCompletionItem> getCompletions(LSContext ctx) {
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         Integer invocationType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
         
         if (invocationType > -1) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filteredItems =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filteredItems =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(ctx);
             return this.getCompletionItemList(filteredItems, ctx);
         }
         // Remove the functions without a receiver symbol, bTypes not being packages and attached functions
-        List<Scope.ScopeEntry> filteredList = visibleSymbols.stream().filter(scopeEntry -> {
-            BSymbol bSymbol = scopeEntry.symbol;
-            return !((bSymbol instanceof BInvokableSymbol
-                    && ((BInvokableSymbol) bSymbol).receiverSymbol != null
-                    && CommonUtil.isValidInvokableSymbol(bSymbol))
-                    || ((bSymbol instanceof BTypeSymbol)
-                    && !(bSymbol instanceof BPackageSymbol))
-                    || (bSymbol instanceof BInvokableSymbol
-                    && ((bSymbol.flags & Flags.ATTACHED) == Flags.ATTACHED)));
-        }).collect(Collectors.toList());
+        // TODO: Fix
+//        List<Scope.ScopeEntry> filteredList = visibleSymbols.stream().filter(symbol -> {
+//            return !((bSymbol instanceof BInvokableSymbol
+//                    && ((BInvokableSymbol) bSymbol).receiverSymbol != null
+//                    && CommonUtil.isValidInvokableSymbol(bSymbol))
+//                    || ((bSymbol instanceof BTypeSymbol)
+//                    && !(bSymbol instanceof BPackageSymbol))
+//                    || (bSymbol instanceof BInvokableSymbol
+//                    && ((bSymbol.flags & Flags.ATTACHED) == Flags.ATTACHED)));
+//        }).collect(Collectors.toList());
 
         completionItems.add(new SnippetCompletionItem(ctx, Snippet.KW_CHECK_PANIC.get()));
         completionItems.add(new SnippetCompletionItem(ctx, Snippet.KW_CHECK.get()));
-        completionItems.addAll(getCompletionItemList(filteredList, ctx));
+//        completionItems.addAll(getCompletionItemList(filteredList, ctx));
         completionItems.addAll(this.getPackagesCompletionItems(ctx));
         
         return completionItems;

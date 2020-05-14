@@ -17,9 +17,9 @@
  */
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
-import org.ballerinalang.langserver.common.utils.CommonUtil;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionException;
@@ -30,10 +30,6 @@ import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.completions.util.filters.DelimiterBasedContentFilter;
 import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
-import org.wso2.ballerinalang.util.Flags;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,19 +56,11 @@ public class InvocationArgsContextProvider extends AbstractCompletionProvider {
         }
 
         if (invocationOrDelimiterTokenType > -1) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filtered = SymbolFilters
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filtered = SymbolFilters
                     .get(DelimiterBasedContentFilter.class).filterItems(context);
             return this.getCompletionItemList(filtered, context);
         }
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        // Remove the functions without a receiver symbol, bTypes not being packages and attached functions
-        visibleSymbols.removeIf(scopeEntry -> {
-            BSymbol bSymbol = scopeEntry.symbol;
-            return (bSymbol instanceof BInvokableSymbol
-                    && ((BInvokableSymbol) bSymbol).receiverSymbol != null
-                    && CommonUtil.isValidInvokableSymbol(bSymbol))
-                    || (bSymbol instanceof BInvokableSymbol && ((bSymbol.flags & Flags.ATTACHED) == Flags.ATTACHED));
-        });
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         completionItems.addAll(getCompletionItemList(visibleSymbols, context));
         completionItems.addAll(this.getPackagesCompletionItems(context));
         // Add the untaint keyword

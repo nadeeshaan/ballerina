@@ -15,8 +15,12 @@
  */
 package org.ballerinalang.langserver.completions.util;
 
+import io.ballerinalang.compiler.text.LinePosition;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.semantic.SemanticModel;
+import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.common.utils.CommonUtil;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
@@ -34,11 +38,14 @@ import org.ballerinalang.langserver.sourceprune.SourcePruner;
 import org.ballerinalang.langserver.sourceprune.TokenTraverserFactory;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.InsertTextFormat;
+import org.eclipse.lsp4j.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
+import org.wso2.ballerinalang.compiler.tree.BLangCompilationUnit;
 import org.wso2.ballerinalang.compiler.tree.BLangNode;
 import org.wso2.ballerinalang.compiler.tree.BLangPackage;
+import org.wso2.ballerinalang.compiler.util.CompilerContext;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -47,7 +54,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.ballerinalang.langserver.common.utils.CommonUtil.FILE_SEPARATOR;
 
 /**
  * Common utility methods for the completion operation.
@@ -65,6 +75,8 @@ public class CompletionUtil {
         TreeVisitor treeVisitor = new TreeVisitor(completionContext);
         BLangPackage bLangPackage = completionContext.get(DocumentServiceKeys.CURRENT_BLANG_PACKAGE_CONTEXT_KEY);
         bLangPackage.accept(treeVisitor);
+        // TODO: Use following accordingly
+        captureBCompiledSymbols(completionContext);
     }
 
     /**
@@ -167,5 +179,27 @@ public class CompletionUtil {
 
         // Update document manager
         documentManager.setPrunedContent(filePath, tokenTraverserFactory.getTokenStream().getText());
+    }
+    
+    private static void captureBCompiledSymbols(LSContext ctx) {
+        String relativeFilePath = ctx.get(DocumentServiceKeys.RELATIVE_FILE_PATH_KEY);
+        BLangPackage pkgNode = ctx.get(DocumentServiceKeys.CURRENT_BLANG_PACKAGE_CONTEXT_KEY);
+        Optional<BLangCompilationUnit> filteredCUnit = pkgNode.compUnits.stream()
+                .filter(cUnit ->
+                        cUnit.getPosition().getSource().cUnitName.replace("/", FILE_SEPARATOR)
+                                .equals(relativeFilePath))
+                .findAny();
+        if (filteredCUnit.isPresent()) {
+            CompilerContext compilerContext = ctx.get(DocumentServiceKeys.COMPILER_CONTEXT_KEY);
+            SemanticModel semanticModel = new SemanticModel(filteredCUnit.get(), pkgNode, compilerContext);
+            ctx.put(CommonKeys.SEMANTIC_MODEL_KEY, semanticModel);
+            Position pos = ctx.get(DocumentServiceKeys.POSITION_KEY).getPosition();
+            List<BCompiledSymbol> compiledSymbols = semanticModel.lookupSymbols(new LinePosition(pos.getLine(),
+                    pos.getCharacter()));
+            if (compiledSymbols.isEmpty()) {
+                throw new AssertionError("Empty Symbols");
+            }
+            ctx.put(CommonKeys.VISIBLE_SYMBOLS_KEY, compiledSymbols);
+        }
     }
 }

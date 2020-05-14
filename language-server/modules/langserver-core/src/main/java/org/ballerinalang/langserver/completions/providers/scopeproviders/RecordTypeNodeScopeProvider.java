@@ -19,9 +19,10 @@ package org.ballerinalang.langserver.completions.providers.scopeproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
-import org.ballerinalang.langserver.common.utils.FilterUtils;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionException;
@@ -29,7 +30,6 @@ import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
 import org.ballerinalang.langserver.completions.CompletionSubRuleParser;
 import org.ballerinalang.langserver.completions.providers.AbstractCompletionProvider;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
 import org.wso2.ballerinalang.compiler.tree.types.BLangRecordTypeNode;
 
 import java.util.ArrayList;
@@ -59,9 +59,9 @@ public class RecordTypeNodeScopeProvider extends AbstractCompletionProvider {
             return this.getProvider(parserRuleContext.getClass()).getCompletions(context);
         }
 
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        List<Scope.ScopeEntry> filteredTypes = visibleSymbols.stream()
-                .filter(FilterUtils::isBTypeEntry)
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> filteredTypes = visibleSymbols.stream()
+                .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.TYPE_DEF)
                 .collect(Collectors.toList());
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredTypes), context));
         completionItems.addAll(this.getPackagesCompletionItems(context));

@@ -42,6 +42,8 @@ dependencies {
     implementation project(':openapi-ballerina:openapi-validator')
     implementation project(':openapi-ballerina:openapi-to-ballerina-generator')
     implementation project(':openapi-ballerina:ballerina-to-openapi-generator')
+    implementation project(':ballerina-compiler-api')
+    implementation project(':ballerina-parser')
 
     // Standard libs
     implementation project(':ballerina-auth')

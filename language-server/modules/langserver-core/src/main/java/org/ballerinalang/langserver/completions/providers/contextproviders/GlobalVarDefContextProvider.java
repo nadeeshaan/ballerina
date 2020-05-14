@@ -19,9 +19,12 @@ package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaModule;
+import org.ballerina.compiler.api.model.BallerinaObjectVarSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
-import org.ballerinalang.langserver.common.utils.CommonUtil;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.CompletionKeys;
 import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
@@ -31,8 +34,6 @@ import org.ballerinalang.langserver.completions.util.filters.SymbolFilters;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BPackageSymbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +58,7 @@ public class GlobalVarDefContextProvider extends AbstractCompletionProvider {
         Optional<CommonToken> assignToken = lhsDefaultTokens.stream()
                 .filter(commonToken -> commonToken.getType() == BallerinaParser.ASSIGN)
                 .findAny();
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
 
         if (lhsDefaultTokens.isEmpty()) {
             return completionItems;
@@ -88,7 +89,7 @@ public class GlobalVarDefContextProvider extends AbstractCompletionProvider {
                 completionItems.addAll(this.getBasicTypesItems(ctx, visibleSymbols));
                 completionItems.addAll(this.getPackagesCompletionItems(ctx));
             } else if (BallerinaParser.COLON == invocationOrDelimiterTokenType) {
-                Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> pkgContent = SymbolFilters
+                Either<List<LSCompletionItem>, List<BCompiledSymbol>> pkgContent = SymbolFilters
                         .get(DelimiterBasedContentFilter.class).filterItems(ctx);
                 completionItems.addAll(this.getCompletionItemList(pkgContent, ctx));
             } else {
@@ -96,7 +97,7 @@ public class GlobalVarDefContextProvider extends AbstractCompletionProvider {
                 completionItems.addAll(this.getPackagesCompletionItems(ctx));
             }
         } else if (invocationOrDelimiterTokenType > -1) {
-            Either<List<LSCompletionItem>, List<Scope.ScopeEntry>> filteredList =
+            Either<List<LSCompletionItem>, List<BCompiledSymbol>> filteredList =
                     SymbolFilters.get(DelimiterBasedContentFilter.class).filterItems(ctx);
             completionItems.addAll(this.getCompletionItemList(filteredList, ctx));
         } else if (assignToken.isPresent()) {
@@ -110,9 +111,9 @@ public class GlobalVarDefContextProvider extends AbstractCompletionProvider {
 
     private List<LSCompletionItem> getListenersAndPackagesItems(LSContext context) {
         List<LSCompletionItem> completionItems = new ArrayList<>(this.getPackagesCompletionItems(context));
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        List<Scope.ScopeEntry> listeners = visibleSymbols.stream()
-                .filter(scopeEntry -> CommonUtil.isListenerObject(scopeEntry.symbol))
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<? extends BCompiledSymbol> listeners = visibleSymbols.stream()
+                .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.LISTENER)
                 .collect(Collectors.toList());
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(listeners), context));
         return completionItems;
@@ -120,26 +121,24 @@ public class GlobalVarDefContextProvider extends AbstractCompletionProvider {
     
     private List<LSCompletionItem> getListenersFromPackage(LSContext context, String alias) {
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        Optional<Scope.ScopeEntry> packageSymbolInfo = visibleSymbols.stream()
-                .filter(scopeEntry -> scopeEntry.symbol instanceof BPackageSymbol
-                        && scopeEntry.symbol.name.getValue().equals(alias))
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        Optional<BallerinaModule> packageSymbolInfo = visibleSymbols.stream()
+                .filter(symbol -> symbol.getKind() == BallerinaSymbolKind.MODULE
+                        && symbol.getName().equals(alias))
+                .map(symbol -> (BallerinaModule) symbol)
                 .findAny();
         
-        if (!packageSymbolInfo.isPresent() || !(packageSymbolInfo.get().symbol instanceof BPackageSymbol)) {
+        if (!packageSymbolInfo.isPresent()) {
             return completionItems;
         }
-        List<Scope.ScopeEntry> listeners = ((BPackageSymbol) packageSymbolInfo.get().symbol).scope.entries.values()
-                .stream()
-                .filter(scopeEntry -> CommonUtil.isListenerObject(scopeEntry.symbol))
-                .collect(Collectors.toList());
+        List<BCompiledSymbol> listeners = new ArrayList<>(packageSymbolInfo.get().getListeners());
         completionItems.addAll(this.getCompletionItemList(listeners, context));
         return completionItems;
     }
     
     private List<LSCompletionItem> getAllTopLevelItems(LSContext ctx) {
         ArrayList<LSCompletionItem> completionItems = new ArrayList<>();
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
         completionItems.addAll(this.addTopLevelItems(ctx));
         completionItems.addAll(this.getBasicTypesItems(ctx, visibleSymbols));
         

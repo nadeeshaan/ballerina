@@ -17,14 +17,16 @@
  */
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaVariable;
+import org.ballerina.compiler.api.types.TypeDescKind;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
+import org.ballerinalang.langserver.common.utils.CommonUtil;
 import org.ballerinalang.langserver.commons.LSContext;
 import org.ballerinalang.langserver.commons.completion.LSCompletionItem;
 import org.ballerinalang.langserver.completions.providers.AbstractCompletionProvider;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.types.BErrorType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,9 +43,12 @@ public class PanicStatementContextProvider extends AbstractCompletionProvider {
 
     @Override
     public List<LSCompletionItem> getCompletions(LSContext context) {
-        List<Scope.ScopeEntry> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        List<Scope.ScopeEntry> filteredList = visibleSymbols.stream()
-                .filter(scopeEntry -> scopeEntry.symbol.type instanceof BErrorType)
+        List<BCompiledSymbol> visibleSymbols = new ArrayList<>(context.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        List<BCompiledSymbol> filteredList = visibleSymbols.stream()
+                .filter(symbol -> symbol instanceof BallerinaVariable
+                        && ((BallerinaVariable) symbol).getTypeDescriptor().isPresent()
+                        && CommonUtil.getRawType(((BallerinaVariable) symbol).getTypeDescriptor().get()).getKind()
+                        == TypeDescKind.ERROR)
                 .collect(Collectors.toList());
 
         return this.getCompletionItemList(new ArrayList<>(filteredList), context);

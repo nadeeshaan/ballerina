@@ -1,24 +1,29 @@
 /*
-*  Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
-*
-*  WSO2 Inc. licenses this file to you under the Apache License,
-*  Version 2.0 (the "License"); you may not use this file except
-*  in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*    http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing,
-*  software distributed under the License is distributed on an
-*  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-*  KIND, either express or implied.  See the License for the
-*  specific language governing permissions and limitations
-*  under the License.
-*/
+ *  Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package org.ballerinalang.langserver.completions.providers.contextproviders;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.apache.commons.lang3.tuple.Pair;
+import org.ballerina.compiler.api.model.BCompiledSymbol;
+import org.ballerina.compiler.api.model.BallerinaFunctionSymbol;
+import org.ballerina.compiler.api.model.BallerinaObjectVarSymbol;
+import org.ballerina.compiler.api.model.BallerinaSymbolKind;
+import org.ballerina.compiler.api.model.BallerinaVariable;
 import org.ballerinalang.annotation.JavaSPIService;
 import org.ballerinalang.langserver.common.CommonKeys;
 import org.ballerinalang.langserver.commons.LSContext;
@@ -33,12 +38,6 @@ import org.ballerinalang.langserver.completions.util.Snippet;
 import org.ballerinalang.langserver.sourceprune.SourcePruneKeys;
 import org.eclipse.lsp4j.CompletionItem;
 import org.wso2.ballerinalang.compiler.parser.antlr4.BallerinaParser;
-import org.wso2.ballerinalang.compiler.semantics.model.Scope;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BInvokableSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BObjectTypeSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BTypeSymbol;
-import org.wso2.ballerinalang.compiler.semantics.model.symbols.BVarSymbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +47,7 @@ import static org.ballerinalang.langserver.common.utils.CommonUtil.getFunctionIn
 
 /**
  * Context provider for Assignment statement.
- * 
+ *
  * @since 1.0
  */
 @JavaSPIService("org.ballerinalang.langserver.commons.completion.spi.LSCompletionProvider")
@@ -66,11 +65,10 @@ public class AssignmentStatementContextProvider extends AbstractCompletionProvid
         int assignTokenIndex = defaultTokenTypes.indexOf(BallerinaParser.ASSIGN);
         int newTokenIndex = defaultTokenTypes.indexOf(BallerinaParser.NEW);
         String lhsToken = defaultTokens.get(assignTokenIndex - 1).getText();
-        Optional<BSymbol> lhsTokenSymbol = this.getSymbolByName(lhsToken, ctx).stream()
-                .map(scopeEntry -> scopeEntry.symbol)
-                .filter(symbol -> symbol instanceof BVarSymbol)
+        Optional<BCompiledSymbol> lhsTokenSymbol = this.getSymbolByName(lhsToken, ctx).stream()
+                .filter(symbol -> symbol instanceof BallerinaVariable)
                 .findFirst();
-        
+
         if (lhsTokenSymbol.isPresent() && newTokenIndex >= 0) {
             return getCompletionsAfterNewKW(lhsTokenSymbol.get(), ctx);
         }
@@ -83,19 +81,22 @@ public class AssignmentStatementContextProvider extends AbstractCompletionProvid
             return this.getProvider(InvocationOrFieldAccessContextProvider.class).getCompletions(ctx);
         }
 
-        if (lhsTokenSymbol.isPresent() && lhsTokenSymbol.get().type.tsymbol instanceof BObjectTypeSymbol) {
-            BObjectTypeSymbol objectTypeSymbol = (BObjectTypeSymbol) lhsTokenSymbol.get().type.tsymbol;
-            BInvokableSymbol initFunction = objectTypeSymbol.initializerFunc.symbol;
-            Pair<String, String> newSign = getFunctionInvocationSignature(initFunction, CommonKeys.NEW_KEYWORD_KEY,
-                    ctx);
-            CompletionItem cItem = BFunctionCompletionItemBuilder.build(initFunction, newSign.getRight(),
-                    newSign.getLeft(), ctx);
-            completionItems.add(new SymbolCompletionItem(ctx, initFunction, cItem));
+        if (lhsTokenSymbol.isPresent() && lhsTokenSymbol.get() instanceof BallerinaObjectVarSymbol) {
+            BallerinaObjectVarSymbol objectTypeSymbol = (BallerinaObjectVarSymbol) lhsTokenSymbol.get();
+            Optional<BallerinaFunctionSymbol> initFunction = objectTypeSymbol.getInitFunction();
+            if (initFunction.isPresent()) {
+                Pair<String, String> newSign = getFunctionInvocationSignature(initFunction.get(),
+                        CommonKeys.NEW_KEYWORD_KEY, ctx);
+                CompletionItem cItem = BFunctionCompletionItemBuilder.build(initFunction.get(), newSign.getRight(),
+                        newSign.getLeft(), ctx);
+                completionItems.add(new SymbolCompletionItem(ctx, initFunction.get(), cItem));
+            }
         }
 
-        List<Scope.ScopeEntry> filteredList = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
-        filteredList.removeIf(this.attachedSymbolFilter());
-        filteredList.removeIf(scopeEntry -> scopeEntry.symbol instanceof BTypeSymbol);
+        List<BCompiledSymbol> filteredList = new ArrayList<>(ctx.get(CommonKeys.VISIBLE_SYMBOLS_KEY));
+        // TODO: Fix this
+//        filteredList.removeIf(this.attachedSymbolFilter());
+        filteredList.removeIf(symbol -> symbol.getKind() == BallerinaSymbolKind.TYPE_DEF);
         completionItems.addAll(this.getCompletionItemList(new ArrayList<>(filteredList), ctx));
         completionItems.addAll(this.getPackagesCompletionItems(ctx));
         fillStaticSnippetItems(completionItems, ctx);
@@ -110,23 +111,25 @@ public class AssignmentStatementContextProvider extends AbstractCompletionProvid
         // Add the flush keyword
         completionItems.add(new SnippetCompletionItem(context, Snippet.KW_FLUSH.get()));
     }
-    
-    private List<LSCompletionItem> getCompletionsAfterNewKW(BSymbol lhsSymbol, LSContext context) {
+
+    private List<LSCompletionItem> getCompletionsAfterNewKW(BCompiledSymbol lhsSymbol, LSContext ctx) {
         List<LSCompletionItem> completionItems = new ArrayList<>();
-        if (!(lhsSymbol.type.tsymbol instanceof BObjectTypeSymbol)) {
+        if (!(lhsSymbol instanceof BallerinaObjectVarSymbol)) {
             return completionItems;
         }
-        BObjectTypeSymbol objectTypeSymbol = (BObjectTypeSymbol) lhsSymbol.type.tsymbol;
-        Integer invocationTokenType = context.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
+        BallerinaObjectVarSymbol objectTypeSymbol = (BallerinaObjectVarSymbol) lhsSymbol;
+        Integer invocationTokenType = ctx.get(CompletionKeys.INVOCATION_TOKEN_TYPE_KEY);
         if (invocationTokenType < 0) {
-            completionItems.addAll(getPackagesCompletionItems(context));
+            completionItems.addAll(getPackagesCompletionItems(ctx));
         }
-        BInvokableSymbol initFunction = objectTypeSymbol.initializerFunc.symbol;
-        Pair<String, String> newSign = getFunctionInvocationSignature(initFunction, objectTypeSymbol.name.value,
-                context);
-        CompletionItem cItem = BFunctionCompletionItemBuilder.build(initFunction, newSign.getRight(),
-                newSign.getLeft(), context);
-        completionItems.add(new SymbolCompletionItem(context, initFunction, cItem));
+        Optional<BallerinaFunctionSymbol> initFunction = objectTypeSymbol.getInitFunction();
+        if (initFunction.isPresent()) {
+            Pair<String, String> newSign = getFunctionInvocationSignature(initFunction.get(),
+                    objectTypeSymbol.getName(), ctx);
+            CompletionItem cItem = BFunctionCompletionItemBuilder.build(initFunction.get(), newSign.getRight(),
+                    newSign.getLeft(), ctx);
+            completionItems.add(new SymbolCompletionItem(ctx, initFunction.get(), cItem));
+        }
 
         return completionItems;
     }

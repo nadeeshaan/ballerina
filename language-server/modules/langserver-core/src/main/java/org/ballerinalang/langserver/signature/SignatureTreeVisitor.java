@@ -314,6 +314,6 @@ public class SignatureTreeVisitor extends LSNodeVisitor {
             List<Scope.ScopeEntry> symbolCompletionItems = new ArrayList<>(entryList);
             visibleSymbols.addAll(symbolCompletionItems);
         }
-        lsContext.put(CommonKeys.VISIBLE_SYMBOLS_KEY, visibleSymbols);
+//        lsContext.put(CommonKeys.VISIBLE_SYMBOLS_KEY, visibleSymbols);
     }
 }
