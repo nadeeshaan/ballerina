@@ -19,25 +19,23 @@ package io.ballerinalang.compiler.syntax.tree;
 
 import io.ballerinalang.compiler.internal.parser.tree.STNode;
 
-import java.util.Optional;
-
 /**
  * This is a generated syntax tree node.
  *
  * @since 1.3.0
  */
-public class ImplicitNewExpression extends NewExpression {
+public class SelectClauseNode extends ClauseNode {
 
-    public ImplicitNewExpression(STNode internalNode, int position, NonTerminalNode parent) {
+    public SelectClauseNode(STNode internalNode, int position, NonTerminalNode parent) {
         super(internalNode, position, parent);
     }
 
-    public Token NewKeyword() {
+    public Token selectKeyword() {
         return childInBucket(0);
     }
 
-    public Optional<Node> ParenthesizedArgList() {
-        return optionalChildInBucket(1);
+    public ExpressionNode expression() {
+        return childInBucket(1);
     }
 
     @Override
@@ -53,21 +51,21 @@ public class ImplicitNewExpression extends NewExpression {
     @Override
     protected String[] childNames() {
         return new String[]{
-                "NewKeyword",
-                "ParenthesizedArgList"};
+                "selectKeyword",
+                "expression"};
     }
 
-    public ImplicitNewExpression modify(
-            Token NewKeyword,
-            Node ParenthesizedArgList) {
+    public SelectClauseNode modify(
+            Token selectKeyword,
+            ExpressionNode expression) {
         if (checkForReferenceEquality(
-                NewKeyword,
-                ParenthesizedArgList)) {
+                selectKeyword,
+                expression)) {
             return this;
         }
 
-        return NodeFactory.createImplicitNewExpression(
-                NewKeyword,
-                ParenthesizedArgList);
+        return NodeFactory.createSelectClauseNode(
+                selectKeyword,
+                expression);
     }
 }

@@ -17,6 +17,9 @@
  */
 package io.ballerinalang.compiler.internal.parser.tree;
 
+import io.ballerinalang.compiler.syntax.tree.Node;
+import io.ballerinalang.compiler.syntax.tree.NonTerminalNode;
+import io.ballerinalang.compiler.syntax.tree.QueryConstructTypeNode;
 import io.ballerinalang.compiler.syntax.tree.SyntaxKind;
 
 /**
@@ -24,9 +27,23 @@ import io.ballerinalang.compiler.syntax.tree.SyntaxKind;
  *
  * @since 1.3.0
  */
-public abstract class STNewExpression extends STExpressionNode {
+public class STQueryConstructTypeNode extends STNode {
+    public final STNode tableKeyword;
+    public final STNode KeySpecifier;
 
-    STNewExpression(SyntaxKind kind) {
-        super(kind);
+    STQueryConstructTypeNode(
+            STNode tableKeyword,
+            STNode KeySpecifier) {
+        super(SyntaxKind.QUERY_CONSTRUCT_TYPE);
+        this.tableKeyword = tableKeyword;
+        this.KeySpecifier = KeySpecifier;
+
+        addChildren(
+                tableKeyword,
+                KeySpecifier);
+    }
+
+    public Node createFacade(int position, NonTerminalNode parent) {
+        return new QueryConstructTypeNode(this, position, parent);
     }
 }

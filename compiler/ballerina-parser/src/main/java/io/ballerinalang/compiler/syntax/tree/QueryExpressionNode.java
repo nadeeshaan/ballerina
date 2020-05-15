@@ -24,21 +24,21 @@ import io.ballerinalang.compiler.internal.parser.tree.STNode;
  *
  * @since 1.3.0
  */
-public class ExplicitNewExpression extends NewExpression {
+public class QueryExpressionNode extends ExpressionNode {
 
-    public ExplicitNewExpression(STNode internalNode, int position, NonTerminalNode parent) {
+    public QueryExpressionNode(STNode internalNode, int position, NonTerminalNode parent) {
         super(internalNode, position, parent);
     }
 
-    public Token NewKeyword() {
+    public QueryConstructTypeNode queryConstructType() {
         return childInBucket(0);
     }
 
-    public Node TypeDescriptor() {
+    public QueryPipelineNode queryPipeline() {
         return childInBucket(1);
     }
 
-    public Node ParenthesizedArgList() {
+    public SelectClauseNode selectClause() {
         return childInBucket(2);
     }
 
@@ -55,25 +55,25 @@ public class ExplicitNewExpression extends NewExpression {
     @Override
     protected String[] childNames() {
         return new String[]{
-                "NewKeyword",
-                "TypeDescriptor",
-                "ParenthesizedArgList"};
+                "queryConstructType",
+                "queryPipeline",
+                "selectClause"};
     }
 
-    public ExplicitNewExpression modify(
-            Token NewKeyword,
-            Node TypeDescriptor,
-            Node ParenthesizedArgList) {
+    public QueryExpressionNode modify(
+            QueryConstructTypeNode queryConstructType,
+            QueryPipelineNode queryPipeline,
+            SelectClauseNode selectClause) {
         if (checkForReferenceEquality(
-                NewKeyword,
-                TypeDescriptor,
-                ParenthesizedArgList)) {
+                queryConstructType,
+                queryPipeline,
+                selectClause)) {
             return this;
         }
 
-        return NodeFactory.createExplicitNewExpression(
-                NewKeyword,
-                TypeDescriptor,
-                ParenthesizedArgList);
+        return NodeFactory.createQueryExpressionNode(
+                queryConstructType,
+                queryPipeline,
+                selectClause);
     }
 }

@@ -17,7 +17,7 @@
  */
 package io.ballerinalang.compiler.internal.parser.tree;
 
-import io.ballerinalang.compiler.syntax.tree.ExplicitNewExpression;
+import io.ballerinalang.compiler.syntax.tree.ExplicitNewExpressionNode;
 import io.ballerinalang.compiler.syntax.tree.Node;
 import io.ballerinalang.compiler.syntax.tree.NonTerminalNode;
 import io.ballerinalang.compiler.syntax.tree.SyntaxKind;
@@ -27,16 +27,16 @@ import io.ballerinalang.compiler.syntax.tree.SyntaxKind;
  *
  * @since 1.3.0
  */
-public class STExplicitNewExpression extends STNewExpression {
+public class STExplicitNewExpressionNode extends STNewExpressionNode {
     public final STNode NewKeyword;
     public final STNode TypeDescriptor;
     public final STNode ParenthesizedArgList;
 
-    STExplicitNewExpression(
+    STExplicitNewExpressionNode(
             STNode NewKeyword,
             STNode TypeDescriptor,
             STNode ParenthesizedArgList) {
-        super(SyntaxKind.EXPLICIT_NEW);
+        super(SyntaxKind.EXPLICIT_NEW_EXPRESSION);
         this.NewKeyword = NewKeyword;
         this.TypeDescriptor = TypeDescriptor;
         this.ParenthesizedArgList = ParenthesizedArgList;
@@ -48,6 +48,6 @@ public class STExplicitNewExpression extends STNewExpression {
     }
 
     public Node createFacade(int position, NonTerminalNode parent) {
-        return new ExplicitNewExpression(this, position, parent);
+        return new ExplicitNewExpressionNode(this, position, parent);
     }
 }
