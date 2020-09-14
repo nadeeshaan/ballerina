@@ -31,6 +31,7 @@ import org.wso2.ballerinalang.compiler.semantics.model.symbols.SymTag;
 import org.wso2.ballerinalang.compiler.tree.BLangAnnotation;
 import org.wso2.ballerinalang.compiler.tree.BLangAnnotationAttachment;
 import org.wso2.ballerinalang.compiler.tree.BLangBlockFunctionBody;
+import org.wso2.ballerinalang.compiler.tree.BLangClassDefinition;
 import org.wso2.ballerinalang.compiler.tree.BLangExprFunctionBody;
 import org.wso2.ballerinalang.compiler.tree.BLangExternalFunctionBody;
 import org.wso2.ballerinalang.compiler.tree.BLangFunction;
@@ -49,6 +50,7 @@ import org.wso2.ballerinalang.compiler.tree.clauses.BLangLetClause;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangLimitClause;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangOnClause;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangOnConflictClause;
+import org.wso2.ballerinalang.compiler.tree.clauses.BLangOnFailClause;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangOrderByClause;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangOrderKey;
 import org.wso2.ballerinalang.compiler.tree.clauses.BLangSelectClause;
@@ -63,7 +65,6 @@ import org.wso2.ballerinalang.compiler.tree.expressions.BLangConstRef;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangConstant;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangElvisExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangErrorVarRef;
-import org.wso2.ballerinalang.compiler.tree.expressions.BLangFailExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangFieldBasedAccess;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangGroupExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangIndexBasedAccess;
@@ -116,9 +117,11 @@ import org.wso2.ballerinalang.compiler.tree.statements.BLangBlockStmt;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangBreak;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangCompoundAssignment;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangContinue;
+import org.wso2.ballerinalang.compiler.tree.statements.BLangDo;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangErrorDestructure;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangErrorVariableDef;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangExpressionStmt;
+import org.wso2.ballerinalang.compiler.tree.statements.BLangFail;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangForeach;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangForkJoin;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangIf;
@@ -206,6 +209,16 @@ public class ConstantPropagation extends BLangNodeVisitor {
 
         rewrite(typeDefinition.annAttachments);
         result = typeDefinition;
+    }
+
+    @Override
+    public void visit(BLangClassDefinition classDefinition) {
+        rewrite(classDefinition.functions);
+        rewrite(classDefinition.fields);
+        classDefinition.initFunction = rewrite(classDefinition.initFunction);
+        classDefinition.receiver = rewrite(classDefinition.receiver);
+        rewrite(classDefinition.annAttachments);
+        result = classDefinition;
     }
 
     @Override
@@ -336,9 +349,9 @@ public class ConstantPropagation extends BLangNodeVisitor {
     }
 
     @Override
-    public void visit(BLangFailExpr failExpr) {
-        failExpr.expr = rewrite(failExpr.expr);
-        result = failExpr;
+    public void visit(BLangFail failNode) {
+        failNode.expr = rewrite(failNode.expr);
+        result = failNode;
     }
 
     @Override
@@ -352,8 +365,6 @@ public class ConstantPropagation extends BLangNodeVisitor {
     public void visit(BLangObjectTypeNode objectTypeNode) {
         rewrite(objectTypeNode.functions);
         rewrite(objectTypeNode.fields);
-        objectTypeNode.initFunction = rewrite(objectTypeNode.initFunction);
-        objectTypeNode.receiver = rewrite(objectTypeNode.receiver);
         result = objectTypeNode;
     }
 
@@ -396,6 +407,7 @@ public class ConstantPropagation extends BLangNodeVisitor {
     @Override
     public void visit(BLangLock lock) {
         lock.body = rewrite(lock.body);
+        lock.onFailClause = rewrite(lock.onFailClause);
         result = lock;
     }
 
@@ -403,6 +415,7 @@ public class ConstantPropagation extends BLangNodeVisitor {
     public void visit(BLangWhile whileNode) {
         whileNode.expr = rewrite(whileNode.expr);
         whileNode.body = rewrite(whileNode.body);
+        whileNode.onFailClause = rewrite(whileNode.onFailClause);
         result = whileNode;
     }
 
@@ -444,6 +457,7 @@ public class ConstantPropagation extends BLangNodeVisitor {
     public void visit(BLangMatch matchNode) {
         matchNode.expr = rewrite(matchNode.expr);
         rewrite(matchNode.patternClauses);
+        matchNode.onFailClause = rewrite(matchNode.onFailClause);
         result = matchNode;
     }
 
@@ -459,12 +473,21 @@ public class ConstantPropagation extends BLangNodeVisitor {
     public void visit(BLangForeach foreach) {
         foreach.collection = rewrite(foreach.collection);
         foreach.body = rewrite(foreach.body);
+        foreach.onFailClause = rewrite(foreach.onFailClause);
         result = foreach;
+    }
+
+    @Override
+    public void visit(BLangDo doNode) {
+        doNode.body = rewrite(doNode.body);
+        doNode.onFailClause = rewrite(doNode.onFailClause);
+        result = doNode;
     }
 
     @Override
     public void visit(BLangTransaction transactionNode) {
         transactionNode.transactionBody = rewrite(transactionNode.transactionBody);
+        transactionNode.onFailClause = rewrite(transactionNode.onFailClause);
         result = transactionNode;
     }
 
@@ -806,7 +829,8 @@ public class ConstantPropagation extends BLangNodeVisitor {
 
     @Override
     public void visit(BLangRetry retryNode) {
-        //TODO Transaction
+        retryNode.retryBody = rewrite(retryNode.retryBody);
+        retryNode.onFailClause = rewrite(retryNode.onFailClause);
         result = retryNode;
     }
 
@@ -920,6 +944,12 @@ public class ConstantPropagation extends BLangNodeVisitor {
     public void visit(BLangDoClause doClause) {
         doClause.body = rewrite(doClause.body);
         result = doClause;
+    }
+
+    @Override
+    public void visit(BLangOnFailClause onFailClause) {
+        onFailClause.body = rewrite(onFailClause.body);
+        result = onFailClause;
     }
 
     @Override

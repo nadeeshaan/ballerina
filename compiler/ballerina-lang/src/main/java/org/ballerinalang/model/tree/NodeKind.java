@@ -57,6 +57,7 @@ public enum NodeKind {
     TABLE_KEY_TYPE_CONSTRAINT,
     TABLE_MULTI_KEY,
     RETRY_SPEC,
+    CLASS_DEFN,
 
     /* Expressions */
     DOCUMENTATION_ATTRIBUTE,
@@ -126,6 +127,7 @@ public enum NodeKind {
     LET_EXPR,
     TABLE_CONSTRUCTOR_EXPR,
     TRANSACTIONAL_EXPRESSION,
+    OBJECT_CTOR_EXPRESSION,
 
     /* Statements */
     ABORT,
@@ -171,6 +173,7 @@ public enum NodeKind {
     DO_ACTION,
     COMMIT,
     ROLLBACK,
+    DO_STMT,
 
     /* Clauses */
     SELECT,
@@ -184,6 +187,7 @@ public enum NodeKind {
     LIMIT,
     ORDER_BY,
     ORDER_KEY,
+    ON_FAIL,
 
     /* Types */
     ARRAY_TYPE,
